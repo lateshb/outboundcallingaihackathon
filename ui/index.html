@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OutboundAI — Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0d0d0d; --card: #161616; --border: #252525;
+  --accent: #00ff88; --accent2: #00ccff; --danger: #ff4d4d; --warn: #ffaa00;
+  --muted: #5a5a5a; --text: #e0e0e0; --text2: #aaa;
+  --mono: 'Courier New', monospace; --sans: 'Inter', 'Segoe UI', system-ui, sans-serif; --r: 8px;
+}
+body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; line-height: 1.5; font-size: 14px; margin: 0; padding: 0; display: flex; flex-direction: column; }
+header { background: var(--card); padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+h1 { margin: 0; font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; color: transparent; }
+nav { display: flex; gap: 1rem; padding: 1rem 2rem; background: var(--card); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.tab-btn { background: none; border: 1px solid var(--border); color: var(--text2); padding: 0.5rem 1rem; border-radius: var(--r); cursor: pointer; transition: all 0.2s; }
+.tab-btn.active, .tab-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+main { padding: 2rem; flex: 1; }
+.panel { display: none; }
+.panel.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 1.5rem; }
+.kpi { font-size: 2rem; font-weight: bold; color: var(--accent); }
+table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--text2); font-weight: normal; }
+input, select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.75rem; border-radius: var(--r); margin-bottom: 1rem; font-family: var(--sans); }
+button.primary { background: var(--accent); color: #000; border: none; padding: 0.75rem 1.5rem; border-radius: var(--r); cursor: pointer; font-weight: bold; }
+button.primary:hover { opacity: 0.9; }
+button.danger { background: var(--danger); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: var(--r); cursor: pointer; }
+.badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; background: var(--border); color: var(--text); }
+.badge.booked { background: #00ff8822; color: var(--accent); }
+#logs-container { background: var(--bg); font-family: var(--mono); font-size: 12px; padding: 1rem; border: 1px solid var(--border); border-radius: var(--r); height: 400px; overflow-y: auto; white-space: pre-wrap; }
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--card); border: 1px solid var(--border); padding: 1rem; border-radius: var(--r); z-index: 1000; display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>OutboundAI</h1>
+  <div id="live-config-chips"></div>
+</header>
+
+<nav>
+  <button class="tab-btn active" onclick="switchTab('stats')">📊 Stats</button>
+  <button class="tab-btn" onclick="switchTab('single')">📞 Single Call</button>
+  <button class="tab-btn" onclick="switchTab('batch')">📋 Batch Call</button>
+  <button class="tab-btn" onclick="switchTab('campaigns')">🚀 Campaigns</button>
+  <button class="tab-btn" onclick="switchTab('agents')">🤖 Agents</button>
+  <button class="tab-btn" onclick="switchTab('prompt')">✏️ AI Prompt</button>
+  <button class="tab-btn" onclick="switchTab('appointments')">📅 Appointments</button>
+  <button class="tab-btn" onclick="switchTab('logs')">📝 Call Logs</button>
+  <button class="tab-btn" onclick="switchTab('crm')">👥 CRM</button>
+  <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
+  <button class="tab-btn" onclick="switchTab('syslogs')">📋 Logs</button>
+  <button class="tab-btn" onclick="switchTab('setup')">🔧 Setup</button>
+</nav>
+
+<main>
+  <!-- STATS -->
+  <div id="stats" class="panel active">
+    <div class="grid" id="kpi-grid"></div>
+    <div class="grid">
+      <div class="card"><canvas id="chart-outcomes"></canvas></div>
+      <div class="card"><canvas id="chart-timeline"></canvas></div>
+      <div class="card"><canvas id="chart-duration"></canvas></div>
+    </div>
+  </div>
+
+  <!-- SINGLE CALL -->
+  <div id="single" class="panel">
+    <div class="card" style="max-width: 500px; margin: 0 auto;">
+      <h2>Make a Call</h2>
+      <input type="text" id="sc-phone" placeholder="Phone (+919876543210)">
+      <input type="text" id="sc-lead" placeholder="Lead Name">
+      <input type="text" id="sc-biz" placeholder="Business Name">
+      <input type="text" id="sc-svc" placeholder="Service Type">
+      <select id="sc-profile"><option value="">Default Profile</option></select>
+      <label><input type="checkbox" id="sc-custom-cb" onchange="$('sc-custom-box').style.display=this.checked?'block':'none'"> Custom Prompt</label>
+      <textarea id="sc-custom-box" style="display:none" rows="5" placeholder="Override system prompt..."></textarea>
+      <button class="primary" onclick="dispatchCall()">Dispatch Call</button>
+    </div>
+  </div>
+
+  <!-- BATCH CALL -->
+  <div id="batch" class="panel">
+    <div class="card">
+      <h2>Batch Call CSV</h2>
+      <select id="bc-profile"><option value="">Default Profile</option></select>
+      <input type="file" id="bc-csv" accept=".csv">
+      <input type="number" id="bc-delay" placeholder="Delay between calls (seconds)" value="3">
+      <button class="primary" onclick="startBatch()">Start Batch (Create Campaign)</button>
+    </div>
+  </div>
+
+  <!-- CAMPAIGNS -->
+  <div id="campaigns" class="panel">
+    <div class="card">
+      <h2>Create Campaign</h2>
+      <input type="text" id="camp-name" placeholder="Campaign Name">
+      <select id="camp-sched">
+        <option value="once">Run Once (Now)</option>
+        <option value="daily">Daily</option>
+        <option value="weekdays">Weekdays (Mon-Fri)</option>
+      </select>
+      <input type="time" id="camp-time" value="09:00">
+      <select id="camp-profile"><option value="">Default Profile</option></select>
+      <input type="file" id="camp-csv" accept=".csv">
+      <button class="primary" onclick="createCampaign()">Save Campaign</button>
+    </div>
+    <div class="card" style="margin-top: 1rem;">
+      <table>
+        <thead><tr><th>Name</th><th>Schedule</th><th>Status</th><th>Stats</th><th>Actions</th></tr></thead>
+        <tbody id="camp-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- AGENTS -->
+  <div id="agents" class="panel">
+    <div class="grid">
+      <div class="card">
+        <h2>Create / Edit Profile</h2>
+        <input type="text" id="ag-name" placeholder="Profile Name">
+        <select id="ag-voice">
+            <optgroup label="Female voices">
+                <option value="Aoede">Aoede — warm, expressive ⭐</option>
+                <option value="Kore">Kore — soft, calm</option>
+                <option value="Leda">Leda — clear female</option>
+            </optgroup>
+            <optgroup label="Male voices">
+                <option value="Charon">Charon — calm, deep</option>
+                <option value="Fenrir">Fenrir — confident male</option>
+            </optgroup>
+        </select>
+        <select id="ag-model">
+            <option value="gemini-3.1-flash-live-preview">gemini-3.1-flash-live-preview</option>
+            <option value="gemini-2.5-flash-native-audio-preview-12-2025">gemini-2.5-flash-native-audio-preview-12-2025</option>
+        </select>
+        <input type="text" id="ag-tools" placeholder='["book_appointment", "end_call"]' value="[]">
+        <textarea id="ag-prompt" rows="5" placeholder="System prompt..."></textarea>
+        <label><input type="checkbox" id="ag-default"> Set as Default</label>
+        <button class="primary" onclick="saveAgentProfile()">Save Profile</button>
+      </div>
+      <div class="card">
+        <h2>Profiles</h2>
+        <table>
+          <thead><tr><th>Name</th><th>Voice</th><th>Model</th><th>Actions</th></tr></thead>
+          <tbody id="ag-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROMPT -->
+  <div id="prompt" class="panel">
+    <div class="card">
+      <h2>Global System Prompt</h2>
+      <textarea id="global-prompt" rows="20"></textarea>
+      <button class="primary" onclick="savePrompt()">Save Prompt</button>
+      <button class="danger" onclick="resetPrompt()">Reset to Default</button>
+    </div>
+  </div>
+
+  <!-- APPOINTMENTS -->
+  <div id="appointments" class="panel">
+    <div class="card">
+      <h2>Appointments</h2>
+      <input type="date" id="apt-date" onchange="loadAppointments()">
+      <table>
+        <thead><tr><th>Date</th><th>Time</th><th>Name</th><th>Phone</th><th>Service</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="apt-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CALL LOGS -->
+  <div id="logs" class="panel">
+    <div class="card">
+      <h2>Call Logs</h2>
+      <table>
+        <thead><tr><th>Time</th><th>Phone</th><th>Lead</th><th>Outcome</th><th>Duration</th><th>Recording</th></tr></thead>
+        <tbody id="logs-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CRM -->
+  <div id="crm" class="panel">
+    <div class="card">
+      <h2>CRM Contacts</h2>
+      <table>
+        <thead><tr><th>Phone</th><th>Lead</th><th>Calls</th><th>Bookings</th><th>Last Call</th></tr></thead>
+        <tbody id="crm-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settings" class="panel">
+    <div class="card">
+      <h2>Configuration</h2>
+      <h3>LiveKit</h3>
+      <input type="text" id="set-lk-url" placeholder="LIVEKIT_URL">
+      <input type="password" id="set-lk-key" placeholder="LIVEKIT_API_KEY">
+      <input type="password" id="set-lk-sec" placeholder="LIVEKIT_API_SECRET">
+      <h3>Vobiz SIP</h3>
+      <input type="text" id="set-vb-dom" placeholder="VOBIZ_SIP_DOMAIN">
+      <input type="text" id="set-vb-usr" placeholder="VOBIZ_USERNAME">
+      <input type="password" id="set-vb-pw" placeholder="VOBIZ_PASSWORD">
+      <input type="text" id="set-vb-num" placeholder="VOBIZ_OUTBOUND_NUMBER">
+      <button class="primary" onclick="createSIPTrunk()">⚡ Create SIP Trunk</button>
+      <br><br>
+      <button class="primary" onclick="saveSettings()">Save All Settings</button>
+    </div>
+  </div>
+
+  <!-- SYSLOGS -->
+  <div id="syslogs" class="panel">
+    <div class="card">
+      <h2>System Logs</h2>
+      <button onclick="loadSysLogs()">Refresh</button>
+      <button class="danger" onclick="apiDel('/api/logs').then(loadSysLogs)">Clear</button>
+      <div id="logs-container" style="margin-top:1rem;"></div>
+    </div>
+  </div>
+
+  <!-- SETUP -->
+  <div id="setup" class="panel">
+    <div class="card">
+      <h2>Setup Guide</h2>
+      <p>1. Go to Settings and configure LiveKit and Vobiz.</p>
+      <p>2. Click 'Create SIP Trunk'.</p>
+      <p>3. Create an Agent Profile.</p>
+      <p>4. Go to Single Call and test.</p>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const api = (path, opts) => fetch(path, opts).then(r => r.json());
+const apiPost = (path, body) => fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+const apiDel  = path => fetch(path, {method:'DELETE'});
+const apiPatch = (path, body) => fetch(path, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+
+function toast(msg) {
+    $('toast').innerText = msg;
+    $('toast').style.display = 'block';
+    setTimeout(() => $('toast').style.display = 'none', 3000);
+}
+
+function switchTab(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    $(id).classList.add('active');
+    event.currentTarget.classList.add('active');
+    if(id === 'stats') loadStats();
+    if(id === 'logs') loadCalls();
+    if(id === 'appointments') loadAppointments();
+    if(id === 'campaigns') loadCampaigns();
+    if(id === 'agents') loadAgentProfiles();
+    if(id === 'crm') loadCRM();
+    if(id === 'settings') loadSettings();
+    if(id === 'prompt') loadPrompt();
+    if(id === 'syslogs') loadSysLogs();
+}
+
+let charts = {};
+function renderChart(id, type, data, options) {
+    if(charts[id]) charts[id].destroy();
+    charts[id] = new Chart($(id), {type, data, options});
+}
+
+async function loadStats() {
+    const d = await api('/api/stats');
+    $('kpi-grid').innerHTML = `
+        <div class="card"><div>Total Calls</div><div class="kpi">${d.total_calls}</div></div>
+        <div class="card"><div>Booked</div><div class="kpi">${d.booked}</div></div>
+        <div class="card"><div>Booking Rate</div><div class="kpi">${d.booking_rate_percent}%</div></div>
+        <div class="card"><div>Avg Duration</div><div class="kpi">${d.avg_duration_seconds}s</div></div>
+    `;
+    
+    renderChart('chart-outcomes', 'doughnut', {
+        labels: Object.keys(d.outcomes),
+        datasets: [{data: Object.values(d.outcomes), backgroundColor: ['#00ff88', '#ff4d4d', '#ffaa00', '#5a5a5a']}]
+    }, {plugins:{title:{display:true, text:'Outcomes'}}});
+
+    renderChart('chart-timeline', 'line', {
+        labels: d.timeline.map(x=>x.date),
+        datasets: [{label:'Calls', data: d.timeline.map(x=>x.count), borderColor: '#00ccff', tension:0.4}]
+    }, {plugins:{title:{display:true, text:'14-Day Timeline'}}});
+}
+
+async function dispatchCall() {
+    const req = {
+        phone: $('sc-phone').value,
+        lead_name: $('sc-lead').value || 'there',
+        business_name: $('sc-biz').value || 'our company',
+        service_type: $('sc-svc').value || 'our service',
+        agent_profile_id: $('sc-profile').value || null,
+        system_prompt: $('sc-custom-cb').checked ? $('sc-custom-box').value : null
+    };
+    try {
+        await apiPost('/api/call', req);
+        toast('Call dispatched!');
+    } catch(e) { toast('Error dispatching call'); }
+}
+
+async function loadCalls() {
+    const data = await api('/api/calls');
+    $('logs-table').innerHTML = data.map(c => `
+        <tr>
+            <td>${c.timestamp.substring(0,16)}</td>
+            <td>${c.phone_number}</td>
+            <td>${c.lead_name || '-'}</td>
+            <td><span class="badge ${c.outcome==='booked'?'booked':''}">${c.outcome}</span></td>
+            <td>${c.duration_seconds}s</td>
+            <td>${c.recording_url ? `<a href="${c.recording_url}" target="_blank">Listen</a>` : '-'}</td>
+        </tr>
+    `).join('');
+}
+
+async function loadAppointments() {
+    const date = $('apt-date').value;
+    const data = await api(`/api/appointments${date ? '?date='+date : ''}`);
+    $('apt-table').innerHTML = data.map(a => `
+        <tr>
+            <td>${a.date}</td>
+            <td>${a.time}</td>
+            <td>${a.name}</td>
+            <td>${a.phone}</td>
+            <td>${a.service}</td>
+            <td>${a.status}</td>
+            <td><button class="danger" onclick="cancelAppointment('${a.id}')">Cancel</button></td>
+        </tr>
+    `).join('');
+}
+
+window.cancelAppointment = async (id) => {
+    await apiDel(`/api/appointments/${id}`);
+    toast('Cancelled');
+    loadAppointments();
+}
+
+async function loadSysLogs() {
+    const data = await api('/api/logs');
+    $('logs-container').innerText = data.map(l => `[${l.timestamp}] ${l.level.toUpperCase()} [${l.source}]: ${l.message}\n${l.detail||''}`).join('\n\n');
+}
+
+async function loadAgentProfiles() {
+    const data = await api('/api/agent-profiles');
+    const opts = `<option value="">Default Profile</option>` + data.map(p => `<option value="${p.id}">${p.name} ${p.is_default?'(Default)':''}</option>`).join('');
+    $('sc-profile').innerHTML = opts;
+    $('bc-profile').innerHTML = opts;
+    $('camp-profile').innerHTML = opts;
+
+    $('ag-table').innerHTML = data.map(p => `
+        <tr>
+            <td>${p.name} ${p.is_default?'★':''}</td>
+            <td>${p.voice}</td>
+            <td>${p.model}</td>
+            <td>
+                <button onclick="apiPost('/api/agent-profiles/${p.id}/set-default',{}).then(loadAgentProfiles)">★</button>
+                <button class="danger" onclick="apiDel('/api/agent-profiles/${p.id}').then(loadAgentProfiles)">X</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+window.saveAgentProfile = async () => {
+    await apiPost('/api/agent-profiles', {
+        name: $('ag-name').value,
+        voice: $('ag-voice').value,
+        model: $('ag-model').value,
+        system_prompt: $('ag-prompt').value || null,
+        enabled_tools: $('ag-tools').value || "[]",
+        is_default: $('ag-default').checked
+    });
+    toast('Profile saved');
+    loadAgentProfiles();
+}
+
+async function loadPrompt() {
+    const d = await api('/api/prompt');
+    $('global-prompt').value = d.prompt;
+}
+window.savePrompt = async () => {
+    await apiPost('/api/prompt', {prompt: $('global-prompt').value});
+    toast('Prompt saved');
+}
+window.resetPrompt = async () => {
+    await apiDel('/api/prompt');
+    toast('Prompt reset');
+    loadPrompt();
+}
+
+async function loadCRM() {
+    const d = await api('/api/crm');
+    $('crm-table').innerHTML = (d.data||[]).map(c => `
+        <tr>
+            <td>${c.phone_number}</td>
+            <td>${c.lead_name||'-'}</td>
+            <td>${c.total_calls}</td>
+            <td>${c.booked}</td>
+            <td>${c.last_call.substring(0,16)}</td>
+        </tr>
+    `).join('');
+}
+
+async function loadSettings() {
+    const d = await api('/api/settings');
+    if(d.LIVEKIT_URL) $('set-lk-url').value = d.LIVEKIT_URL.value;
+    if(d.VOBIZ_SIP_DOMAIN) $('set-vb-dom').value = d.VOBIZ_SIP_DOMAIN.value;
+    if(d.VOBIZ_USERNAME) $('set-vb-usr').value = d.VOBIZ_USERNAME.value;
+    if(d.VOBIZ_OUTBOUND_NUMBER) $('set-vb-num').value = d.VOBIZ_OUTBOUND_NUMBER.value;
+}
+window.saveSettings = async () => {
+    await apiPost('/api/settings', {settings: {
+        LIVEKIT_URL: $('set-lk-url').value,
+        LIVEKIT_API_KEY: $('set-lk-key').value,
+        LIVEKIT_API_SECRET: $('set-lk-sec').value,
+        VOBIZ_SIP_DOMAIN: $('set-vb-dom').value,
+        VOBIZ_USERNAME: $('set-vb-usr').value,
+        VOBIZ_PASSWORD: $('set-vb-pw').value,
+        VOBIZ_OUTBOUND_NUMBER: $('set-vb-num').value
+    }});
+    toast('Settings saved');
+}
+
+window.createSIPTrunk = async () => {
+    try {
+        const r = await apiPost('/api/setup/trunk', {});
+        toast(r.trunk_id ? 'Trunk created: '+r.trunk_id : 'Failed');
+    } catch(e) { toast('Error creating trunk'); }
+}
+
+async function loadCampaigns() {
+    const data = await api('/api/campaigns');
+    $('camp-table').innerHTML = data.map(c => `
+        <tr>
+            <td>${c.name}</td>
+            <td>${c.schedule_type} @ ${c.schedule_time||''}</td>
+            <td>${c.status}</td>
+            <td>${c.total_dispatched}/${c.total_failed}</td>
+            <td>
+                <button onclick="apiPost('/api/campaigns/${c.id}/run',{}).then(loadCampaigns)">Run</button>
+                <button class="danger" onclick="apiDel('/api/campaigns/${c.id}').then(loadCampaigns)">X</button>
+            </td>
+        </tr>
+    `).join('');
+}
+window.createCampaign = async () => {
+    const file = $('camp-csv').files[0];
+    if(!file) return toast('Select CSV');
+    const text = await file.text();
+    const rows = text.split('\n').slice(1).filter(r=>r.trim()).map(r => {
+        const [phone, lead_name, business_name, service_type] = r.split(',');
+        return {phone, lead_name, business_name, service_type};
+    });
+    
+    await apiPost('/api/campaigns', {
+        name: $('camp-name').value,
+        schedule_type: $('camp-sched').value,
+        schedule_time: $('camp-time').value,
+        contacts: rows,
+        agent_profile_id: $('camp-profile').value || null
+    });
+    toast('Campaign saved');
+    loadCampaigns();
+}
+
+window.startBatch = async () => {
+    const file = $('bc-csv').files[0];
+    if(!file) return toast('Select CSV');
+    const text = await file.text();
+    const rows = text.split('\n').slice(1).filter(r=>r.trim()).map(r => {
+        const [phone, lead_name, business_name, service_type] = r.split(',');
+        return {phone, lead_name, business_name, service_type};
+    });
+    await apiPost('/api/campaigns', {
+        name: 'Batch Call ' + new Date().toISOString(),
+        schedule_type: 'once',
+        contacts: rows,
+        call_delay_seconds: parseInt($('bc-delay').value),
+        agent_profile_id: $('bc-profile').value || null
+    });
+    toast('Batch started');
+}
+
+// Init
+window.onload = () => { loadStats(); setInterval(loadStats, 10000); };
+</script>
+</body>
+</html>
