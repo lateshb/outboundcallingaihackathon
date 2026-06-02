@@ -7,6 +7,8 @@ import certifi
 from typing import Optional
 
 from dotenv import load_dotenv
+load_dotenv(".env")
+
 
 # Patch SSL before any network import
 _orig_ssl = ssl.create_default_context
@@ -29,9 +31,9 @@ from db import init_db, log_error, get_enabled_tools
 from prompts import build_prompt
 from tools import AppointmentTools
 
-load_dotenv(".env")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("outbound-agent")
+
 
 SIP_DOMAIN = os.getenv("VOBIZ_SIP_DOMAIN", "")
 

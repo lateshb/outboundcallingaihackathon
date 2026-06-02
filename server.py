@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Optional
 
 from dotenv import load_dotenv
+load_dotenv(".env")
+
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
@@ -23,6 +25,7 @@ def _certifi_ssl(purpose=ssl.Purpose.SERVER_AUTH, **kwargs):
     return _orig_ssl(purpose, **kwargs)
 ssl.create_default_context = _certifi_ssl
 
+
 from db import (
     SENSITIVE_KEYS, cancel_appointment, clear_errors, create_campaign, delete_campaign,
     get_all_appointments, get_all_calls, get_all_campaigns, get_all_settings,
@@ -33,9 +36,9 @@ from db import (
 )
 from prompts import DEFAULT_SYSTEM_PROMPT
 
-load_dotenv(".env")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("server")
+
 
 
 init_db()
