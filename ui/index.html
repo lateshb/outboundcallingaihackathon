@@ -58,6 +58,7 @@ button.danger { background: var(--danger); color: #fff; border: none; padding: 0
   <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
   <button class="tab-btn" onclick="switchTab('syslogs')">📋 Logs</button>
   <button class="tab-btn" onclick="switchTab('setup')">🔧 Setup</button>
+  <button class="tab-btn" onclick="window.location.href='/logout'" style="margin-left: auto; border-color: var(--danger); color: var(--danger);">🚪 Logout</button>
 </nav>
 
 <main>
@@ -204,6 +205,23 @@ button.danger { background: var(--danger); color: #fff; border: none; padding: 0
   <div id="settings" class="panel">
     <div class="card">
       <h2>Configuration</h2>
+      
+      <!-- Emergency Controls -->
+      <div style="background: rgba(255,59,48,0.1); border: 1px solid #ff3b30; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+        <h3 style="color: #ff3b30; margin-top: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+          ⚠️ Emergency Kill Switch
+        </h3>
+        <p style="font-size: 13px; color: var(--text2); margin-top: 0; margin-bottom: 1rem;">
+          Activating this instantly suspends all outbound call dispatches and campaign executions to protect against unauthorized usage and API billing drain.
+        </p>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <select id="set-emergency-stop" style="margin-bottom: 0; width: auto; min-width: 200px; background: rgba(0,0,0,0.2); border: 1px solid #ff3b30; border-radius: 4px; color: #ff3b30; padding: 0.5rem; outline: none; cursor: pointer;">
+            <option value="false" style="color: var(--text); background: #111;">Inactive (Calls Allowed)</option>
+            <option value="true" style="color: #ff3b30; background: #111;">Active (Block All Calls)</option>
+          </select>
+        </div>
+      </div>
+
       <h3>LiveKit</h3>
       <input type="text" id="set-lk-url" placeholder="LIVEKIT_URL">
       <input type="password" id="set-lk-key" placeholder="LIVEKIT_API_KEY">
@@ -213,9 +231,61 @@ button.danger { background: var(--danger); color: #fff; border: none; padding: 0
       <input type="text" id="set-vb-usr" placeholder="VOBIZ_USERNAME">
       <input type="password" id="set-vb-pw" placeholder="VOBIZ_PASSWORD">
       <input type="text" id="set-vb-num" placeholder="VOBIZ_OUTBOUND_NUMBER">
+      
+      <h3>Safety & Rate Limits</h3>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+        <div style="flex: 1; min-width: 200px;">
+          <label style="font-size: 12px; color: var(--text2); display: block; margin-bottom: 0.25rem;">Max Calls Per Minute</label>
+          <input type="number" id="set-max-minute" placeholder="e.g. 15" style="margin-bottom: 0;">
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+          <label style="font-size: 12px; color: var(--text2); display: block; margin-bottom: 0.25rem;">Max Calls Per 24 Hours (Daily Cap)</label>
+          <input type="number" id="set-max-daily" placeholder="e.g. 500" style="margin-bottom: 0;">
+        </div>
+      </div>
+
       <button class="primary" onclick="createSIPTrunk()">⚡ Create SIP Trunk</button>
       <br><br>
       <button class="primary" onclick="saveSettings()">Save All Settings</button>
+    </div>
+
+    <div class="card" style="margin-top: 1.5rem;">
+      <h2>User Management</h2>
+      <h3>Add New User Account</h3>
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: flex-end;">
+        <div style="flex: 2; min-width: 150px;">
+          <label style="display:block; margin-bottom: 0.25rem; font-size: 12px; color: var(--text2);">Email Address</label>
+          <input type="email" id="new-user-email" placeholder="email@domain.com" style="margin-bottom: 0;">
+        </div>
+        <div style="flex: 2; min-width: 150px;">
+          <label style="display:block; margin-bottom: 0.25rem; font-size: 12px; color: var(--text2);">Password (min 6 chars)</label>
+          <input type="password" id="new-user-password" placeholder="Password" style="margin-bottom: 0;">
+        </div>
+        <div style="flex: 1; min-width: 120px;">
+          <label style="display:block; margin-bottom: 0.25rem; font-size: 12px; color: var(--text2);">Role</label>
+          <select id="new-user-role" style="margin-bottom: 0; padding: 0.7rem; width: 100%; height: 42px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 4px; color: var(--text);">
+            <option value="user">Normal User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div style="flex: 1; min-width: 100px;">
+          <button class="primary" onclick="addNewUser()" style="width: 100%; height: 42px; margin-top: 0; padding: 0; cursor: pointer;">Add User</button>
+        </div>
+      </div>
+      
+      <h3>Authorized Users</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Email Address</th>
+            <th>Role</th>
+            <th style="text-align: right; width: 100px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body">
+          <!-- Populated dynamically -->
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -246,10 +316,23 @@ button.danger { background: var(--danger); color: #fff; border: none; padding: 0
 
 <script>
 const $ = id => document.getElementById(id);
-const api = (path, opts) => fetch(path, opts).then(r => r.json());
-const apiPost = (path, body) => fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-const apiDel  = path => fetch(path, {method:'DELETE'});
-const apiPatch = (path, body) => fetch(path, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+
+const handleResponse = async (r) => {
+    if (r.status === 401) {
+        window.location.href = '/login';
+        throw new Error('Unauthorized');
+    }
+    if (!r.ok) {
+        const err = await r.json().catch(() => ({detail: r.statusText}));
+        throw new Error(err.detail || 'API Error');
+    }
+    return r.json();
+};
+
+const api = (path, opts) => fetch(path, opts).then(handleResponse);
+const apiPost = (path, body) => fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}).then(handleResponse);
+const apiDel  = path => fetch(path, {method:'DELETE'}).then(handleResponse);
+const apiPatch = (path, body) => fetch(path, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}).then(handleResponse);
 
 function toast(msg) {
     $('toast').innerText = msg;
@@ -268,7 +351,7 @@ function switchTab(id) {
     if(id === 'campaigns') loadCampaigns();
     if(id === 'agents') loadAgentProfiles();
     if(id === 'crm') loadCRM();
-    if(id === 'settings') loadSettings();
+    if(id === 'settings') { loadSettings(); loadUsers(); }
     if(id === 'prompt') loadPrompt();
     if(id === 'syslogs') loadSysLogs();
 }
@@ -421,6 +504,9 @@ async function loadSettings() {
     if(d.VOBIZ_SIP_DOMAIN) $('set-vb-dom').value = d.VOBIZ_SIP_DOMAIN.value;
     if(d.VOBIZ_USERNAME) $('set-vb-usr').value = d.VOBIZ_USERNAME.value;
     if(d.VOBIZ_OUTBOUND_NUMBER) $('set-vb-num').value = d.VOBIZ_OUTBOUND_NUMBER.value;
+    if(d.EMERGENCY_STOP) $('set-emergency-stop').value = d.EMERGENCY_STOP.value || "false";
+    if(d.MAX_CALLS_PER_MINUTE) $('set-max-minute').value = d.MAX_CALLS_PER_MINUTE.value || "15";
+    if(d.MAX_DAILY_CALLS) $('set-max-daily').value = d.MAX_DAILY_CALLS.value || "500";
 }
 window.saveSettings = async () => {
     await apiPost('/api/settings', {settings: {
@@ -430,7 +516,10 @@ window.saveSettings = async () => {
         VOBIZ_SIP_DOMAIN: $('set-vb-dom').value,
         VOBIZ_USERNAME: $('set-vb-usr').value,
         VOBIZ_PASSWORD: $('set-vb-pw').value,
-        VOBIZ_OUTBOUND_NUMBER: $('set-vb-num').value
+        VOBIZ_OUTBOUND_NUMBER: $('set-vb-num').value,
+        EMERGENCY_STOP: $('set-emergency-stop').value,
+        MAX_CALLS_PER_MINUTE: $('set-max-minute').value,
+        MAX_DAILY_CALLS: $('set-max-daily').value
     }});
     toast('Settings saved');
 }
@@ -495,8 +584,72 @@ window.startBatch = async () => {
     toast('Batch started');
 }
 
+async function checkRole() {
+    try {
+        const me = await api('/api/me');
+        if (me.role !== 'admin') {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const text = btn.innerText.toLowerCase();
+                if (text.includes('settings') || text.includes('logs') || text.includes('prompt')) {
+                    btn.style.display = 'none';
+                }
+            });
+        }
+    } catch(e) {
+        console.error("Failed to fetch user role", e);
+    }
+}
+
+async function loadUsers() {
+    try {
+        const d = await api('/api/settings/users');
+        $('users-table-body').innerHTML = d.users.map(u => `
+            <tr>
+                <td>${u.email}</td>
+                <td><span class="badge ${u.role === 'admin' ? 'booked' : ''}">${u.role}</span></td>
+                <td style="text-align: right;">
+                    <button class="danger" onclick="deleteUser('${u.email}')" style="padding: 0.25rem 0.75rem; font-size: 12px; height: auto; cursor: pointer;">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch(e) {
+        toast('Error loading users list');
+    }
+}
+
+window.addNewUser = async () => {
+    const email = $('new-user-email').value.trim();
+    const password = $('new-user-password').value;
+    const role = $('new-user-role').value;
+    if(!email || !password) return toast('Please fill out all fields');
+    try {
+        const r = await apiPost('/api/settings/users', { email, password, role });
+        toast(r.message || 'User added successfully');
+        $('new-user-email').value = '';
+        $('new-user-password').value = '';
+        loadUsers();
+    } catch(e) {
+        toast(e.message || 'Failed to add user');
+    }
+}
+
+window.deleteUser = async (email) => {
+    if(!confirm(`Are you sure you want to delete user: ${email}?`)) return;
+    try {
+        const r = await apiDel(`/api/settings/users/${email}`);
+        toast(r.message || 'User deleted');
+        loadUsers();
+    } catch(e) {
+        toast(e.message || 'Failed to delete user');
+    }
+}
+
 // Init
-window.onload = () => { loadStats(); setInterval(loadStats, 10000); };
+window.onload = async () => {
+    await checkRole();
+    loadStats();
+    setInterval(loadStats, 10000);
+};
 </script>
 </body>
 </html>

@@ -285,7 +285,8 @@ async def entrypoint(ctx: agents.JobContext) -> None:
                     file_outputs=[api.EncodedFileOutput(
                         file_type=api.EncodedFileType.OGG, filepath=_recording_path,
                         s3=api.S3Upload(access_key=_aws_key, secret=_aws_secret,
-                                        bucket=_aws_bucket, region=_s3_region, endpoint=_s3_endpoint),
+                                        bucket=_aws_bucket, region=_s3_region, endpoint=_s3_endpoint,
+                                        force_path_style=True),
                     )],
                 )
                 _egress = await ctx.api.egress.start_room_composite_egress(_egress_req)
@@ -338,6 +339,21 @@ async def entrypoint(ctx: agents.JobContext) -> None:
 
         await _log("info", f"SIP participant disconnected - ending session for {phone_number}")
         await session.aclose()
+        if not getattr(tool_ctx, "logged", False):
+            try:
+                from db import log_call
+                duration = int(time.time() - tool_ctx._call_start_time)
+                await log_call(
+                    phone_number=phone_number,
+                    lead_name=lead_name,
+                    outcome="completed",
+                    reason="Participant disconnected",
+                    duration_seconds=duration,
+                    recording_url=tool_ctx.recording_url
+                )
+                tool_ctx.logged = True
+            except Exception as _log_exc:
+                await _log("error", f"Fallback call logging failed: {_log_exc}")
     else:
         _done = asyncio.Event()
         ctx.room.on("disconnected", lambda: _done.set())
