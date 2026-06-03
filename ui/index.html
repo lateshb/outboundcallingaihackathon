@@ -35,7 +35,58 @@ button.danger { background: var(--danger); color: #fff; border: none; padding: 0
 .badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; background: var(--border); color: var(--text); }
 .badge.booked { background: #00ff8822; color: var(--accent); }
 #logs-container { background: var(--bg); font-family: var(--mono); font-size: 12px; padding: 1rem; border: 1px solid var(--border); border-radius: var(--r); height: 400px; overflow-y: auto; white-space: pre-wrap; }
-.toast { position: fixed; bottom: 20px; right: 20px; background: var(--card); border: 1px solid var(--border); padding: 1rem; border-radius: var(--r); z-index: 1000; display: none; }
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(22, 22, 22, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  padding: 0.8rem 1.2rem;
+  border-radius: var(--r);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: var(--text);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  opacity: 0;
+  transform: translateY(20px);
+  pointer-events: none;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.toast.success {
+  border-color: var(--accent);
+  background: rgba(0, 255, 136, 0.1);
+}
+.toast.success .highlight-num {
+  color: var(--accent);
+  font-weight: bold;
+}
+.toast.error {
+  border-color: var(--danger);
+  background: rgba(255, 77, 77, 0.1);
+}
+.toast.info {
+  border-color: var(--accent2);
+  background: rgba(0, 204, 255, 0.1);
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--accent2);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 </style>
 </head>
 <body>
@@ -334,10 +385,33 @@ const apiPost = (path, body) => fetch(path, {method:'POST', headers:{'Content-Ty
 const apiDel  = path => fetch(path, {method:'DELETE'}).then(handleResponse);
 const apiPatch = (path, body) => fetch(path, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}).then(handleResponse);
 
-function toast(msg) {
-    $('toast').innerText = msg;
-    $('toast').style.display = 'block';
-    setTimeout(() => $('toast').style.display = 'none', 3000);
+let toastTimeout;
+function toast(msg, type = 'info', duration = 3000) {
+    if (toastTimeout) clearTimeout(toastTimeout);
+    
+    const t = $('toast');
+    t.className = `toast show ${type === 'progress' ? 'info' : type}`;
+    
+    let content = '';
+    if (type === 'progress') {
+        content = `<div class="spinner"></div> <span>${msg}</span>`;
+    } else if (type === 'success') {
+        const phoneRegex = /(\+\d{1,4}\d{6,14}|\b\d{10}\b)/g;
+        const formattedMsg = msg.replace(phoneRegex, `<span class="highlight-num">$1</span>`);
+        content = `<span>✅ ${formattedMsg}</span>`;
+    } else if (type === 'error') {
+        content = `<span>❌ ${msg}</span>`;
+    } else {
+        content = `<span>ℹ️ ${msg}</span>`;
+    }
+    
+    t.innerHTML = content;
+    
+    if (duration > 0) {
+        toastTimeout = setTimeout(() => {
+            t.classList.remove('show');
+        }, duration);
+    }
 }
 
 function switchTab(id) {
@@ -383,18 +457,25 @@ async function loadStats() {
 }
 
 async function dispatchCall() {
+    const phone = $('sc-phone').value.trim();
+    if(!phone) return toast('Please enter a phone number', 'error');
+    
     const req = {
-        phone: $('sc-phone').value,
+        phone: phone,
         lead_name: $('sc-lead').value || 'there',
         business_name: $('sc-biz').value || 'our company',
         service_type: $('sc-svc').value || 'our service',
         agent_profile_id: $('sc-profile').value || null,
         system_prompt: $('sc-custom-cb').checked ? $('sc-custom-box').value : null
     };
+    
+    toast('Dispatching call to ' + phone + '...', 'progress', 0);
     try {
         await apiPost('/api/call', req);
-        toast('Call dispatched!');
-    } catch(e) { toast('Error dispatching call'); }
+        toast('Call dispatched to ' + phone, 'success');
+    } catch(e) { 
+        toast(e.message || 'Error dispatching call', 'error'); 
+    }
 }
 
 async function loadCalls() {
@@ -459,16 +540,21 @@ async function loadAgentProfiles() {
 }
 
 window.saveAgentProfile = async () => {
-    await apiPost('/api/agent-profiles', {
-        name: $('ag-name').value,
-        voice: $('ag-voice').value,
-        model: $('ag-model').value,
-        system_prompt: $('ag-prompt').value || null,
-        enabled_tools: $('ag-tools').value || "[]",
-        is_default: $('ag-default').checked
-    });
-    toast('Profile saved');
-    loadAgentProfiles();
+    toast('Saving profile...', 'progress', 0);
+    try {
+        await apiPost('/api/agent-profiles', {
+            name: $('ag-name').value,
+            voice: $('ag-voice').value,
+            model: $('ag-model').value,
+            system_prompt: $('ag-prompt').value || null,
+            enabled_tools: $('ag-tools').value || "[]",
+            is_default: $('ag-default').checked
+        });
+        toast('Profile saved successfully', 'success');
+        loadAgentProfiles();
+    } catch(e) {
+        toast(e.message || 'Failed to save profile', 'error');
+    }
 }
 
 async function loadPrompt() {
@@ -476,13 +562,24 @@ async function loadPrompt() {
     $('global-prompt').value = d.prompt;
 }
 window.savePrompt = async () => {
-    await apiPost('/api/prompt', {prompt: $('global-prompt').value});
-    toast('Prompt saved');
+    toast('Saving global system prompt...', 'progress', 0);
+    try {
+        await apiPost('/api/prompt', {prompt: $('global-prompt').value});
+        toast('Global system prompt saved successfully', 'success');
+    } catch(e) {
+        toast(e.message || 'Failed to save prompt', 'error');
+    }
 }
 window.resetPrompt = async () => {
-    await apiDel('/api/prompt');
-    toast('Prompt reset');
-    loadPrompt();
+    if(!confirm('Are you sure you want to reset the prompt to the default?')) return;
+    toast('Resetting global system prompt...', 'progress', 0);
+    try {
+        await apiDel('/api/prompt');
+        toast('Global system prompt reset successfully', 'success');
+        loadPrompt();
+    } catch(e) {
+        toast(e.message || 'Failed to reset prompt', 'error');
+    }
 }
 
 async function loadCRM() {
@@ -509,26 +606,38 @@ async function loadSettings() {
     if(d.MAX_DAILY_CALLS) $('set-max-daily').value = d.MAX_DAILY_CALLS.value || "500";
 }
 window.saveSettings = async () => {
-    await apiPost('/api/settings', {settings: {
-        LIVEKIT_URL: $('set-lk-url').value,
-        LIVEKIT_API_KEY: $('set-lk-key').value,
-        LIVEKIT_API_SECRET: $('set-lk-sec').value,
-        VOBIZ_SIP_DOMAIN: $('set-vb-dom').value,
-        VOBIZ_USERNAME: $('set-vb-usr').value,
-        VOBIZ_PASSWORD: $('set-vb-pw').value,
-        VOBIZ_OUTBOUND_NUMBER: $('set-vb-num').value,
-        EMERGENCY_STOP: $('set-emergency-stop').value,
-        MAX_CALLS_PER_MINUTE: $('set-max-minute').value,
-        MAX_DAILY_CALLS: $('set-max-daily').value
-    }});
-    toast('Settings saved');
+    toast('Saving settings...', 'progress', 0);
+    try {
+        await apiPost('/api/settings', {settings: {
+            LIVEKIT_URL: $('set-lk-url').value,
+            LIVEKIT_API_KEY: $('set-lk-key').value,
+            LIVEKIT_API_SECRET: $('set-lk-sec').value,
+            VOBIZ_SIP_DOMAIN: $('set-vb-dom').value,
+            VOBIZ_USERNAME: $('set-vb-usr').value,
+            VOBIZ_PASSWORD: $('set-vb-pw').value,
+            VOBIZ_OUTBOUND_NUMBER: $('set-vb-num').value,
+            EMERGENCY_STOP: $('set-emergency-stop').value,
+            MAX_CALLS_PER_MINUTE: $('set-max-minute').value,
+            MAX_DAILY_CALLS: $('set-max-daily').value
+        }});
+        toast('Settings saved successfully', 'success');
+    } catch(e) {
+        toast(e.message || 'Failed to save settings', 'error');
+    }
 }
 
 window.createSIPTrunk = async () => {
+    toast('Creating SIP trunk...', 'progress', 0);
     try {
         const r = await apiPost('/api/setup/trunk', {});
-        toast(r.trunk_id ? 'Trunk created: '+r.trunk_id : 'Failed');
-    } catch(e) { toast('Error creating trunk'); }
+        if(r.trunk_id) {
+            toast('Trunk created: ' + r.trunk_id, 'success');
+        } else {
+            toast('Failed to create trunk', 'error');
+        }
+    } catch(e) {
+        toast(e.message || 'Error creating trunk', 'error');
+    }
 }
 
 async function loadCampaigns() {
@@ -548,40 +657,54 @@ async function loadCampaigns() {
 }
 window.createCampaign = async () => {
     const file = $('camp-csv').files[0];
-    if(!file) return toast('Select CSV');
-    const text = await file.text();
-    const rows = text.split('\n').slice(1).filter(r=>r.trim()).map(r => {
-        const [phone, lead_name, business_name, service_type] = r.split(',');
-        return {phone, lead_name, business_name, service_type};
-    });
+    if(!file) return toast('Select CSV', 'error');
+    const name = $('camp-name').value.trim();
+    if(!name) return toast('Enter campaign name', 'error');
     
-    await apiPost('/api/campaigns', {
-        name: $('camp-name').value,
-        schedule_type: $('camp-sched').value,
-        schedule_time: $('camp-time').value,
-        contacts: rows,
-        agent_profile_id: $('camp-profile').value || null
-    });
-    toast('Campaign saved');
-    loadCampaigns();
+    toast('Creating campaign...', 'progress', 0);
+    try {
+        const text = await file.text();
+        const rows = text.split('\n').slice(1).filter(r=>r.trim()).map(r => {
+            const [phone, lead_name, business_name, service_type] = r.split(',');
+            return {phone: phone.trim(), lead_name: lead_name?.trim(), business_name: business_name?.trim(), service_type: service_type?.trim()};
+        });
+        
+        await apiPost('/api/campaigns', {
+            name: name,
+            schedule_type: $('camp-sched').value,
+            schedule_time: $('camp-time').value,
+            contacts: rows,
+            agent_profile_id: $('camp-profile').value || null
+        });
+        toast('Campaign saved successfully', 'success');
+        loadCampaigns();
+    } catch(e) {
+        toast(e.message || 'Failed to create campaign', 'error');
+    }
 }
 
 window.startBatch = async () => {
     const file = $('bc-csv').files[0];
-    if(!file) return toast('Select CSV');
-    const text = await file.text();
-    const rows = text.split('\n').slice(1).filter(r=>r.trim()).map(r => {
-        const [phone, lead_name, business_name, service_type] = r.split(',');
-        return {phone, lead_name, business_name, service_type};
-    });
-    await apiPost('/api/campaigns', {
-        name: 'Batch Call ' + new Date().toISOString(),
-        schedule_type: 'once',
-        contacts: rows,
-        call_delay_seconds: parseInt($('bc-delay').value),
-        agent_profile_id: $('bc-profile').value || null
-    });
-    toast('Batch started');
+    if(!file) return toast('Select CSV', 'error');
+    
+    toast('Starting batch call job...', 'progress', 0);
+    try {
+        const text = await file.text();
+        const rows = text.split('\n').slice(1).filter(r=>r.trim()).map(r => {
+            const [phone, lead_name, business_name, service_type] = r.split(',');
+            return {phone: phone.trim(), lead_name: lead_name?.trim(), business_name: business_name?.trim(), service_type: service_type?.trim()};
+        });
+        await apiPost('/api/campaigns', {
+            name: 'Batch Call ' + new Date().toISOString(),
+            schedule_type: 'once',
+            contacts: rows,
+            call_delay_seconds: parseInt($('bc-delay').value),
+            agent_profile_id: $('bc-profile').value || null
+        });
+        toast('Batch started successfully', 'success');
+    } catch(e) {
+        toast(e.message || 'Failed to start batch', 'error');
+    }
 }
 
 async function checkRole() {
@@ -621,26 +744,28 @@ window.addNewUser = async () => {
     const email = $('new-user-email').value.trim();
     const password = $('new-user-password').value;
     const role = $('new-user-role').value;
-    if(!email || !password) return toast('Please fill out all fields');
+    if(!email || !password) return toast('Please fill out all fields', 'error');
+    toast('Adding user...', 'progress', 0);
     try {
         const r = await apiPost('/api/settings/users', { email, password, role });
-        toast(r.message || 'User added successfully');
+        toast(r.message || 'User added successfully', 'success');
         $('new-user-email').value = '';
         $('new-user-password').value = '';
         loadUsers();
     } catch(e) {
-        toast(e.message || 'Failed to add user');
+        toast(e.message || 'Failed to add user', 'error');
     }
 }
 
 window.deleteUser = async (email) => {
     if(!confirm(`Are you sure you want to delete user: ${email}?`)) return;
+    toast('Deleting user...', 'progress', 0);
     try {
         const r = await apiDel(`/api/settings/users/${email}`);
-        toast(r.message || 'User deleted');
+        toast(r.message || 'User deleted', 'success');
         loadUsers();
     } catch(e) {
-        toast(e.message || 'Failed to delete user');
+        toast(e.message || 'Failed to delete user', 'error');
     }
 }
 
