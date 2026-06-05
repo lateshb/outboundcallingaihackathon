@@ -1611,6 +1611,7 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             lucide.createIcons();
+            checkRole();
             loadStats();
             loadLiveConfig();
             loadPrompt();
@@ -1628,6 +1629,24 @@
             // Auto-refresh stats every 10 seconds
             setInterval(loadStats, 10000);
         });
+
+        async function checkRole() {
+            try {
+                const res = await fetch("/api/me");
+                if (!res.ok) return;
+                const me = await res.json();
+                if (me.role !== "admin") {
+                    document.querySelectorAll(".tab-btn").forEach(btn => {
+                        const text = btn.textContent.toLowerCase();
+                        if (text.includes("settings") || text.includes("logs") || text.includes("prompt") || text.includes("users")) {
+                            btn.style.display = "none";
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch role status", err);
+            }
+        }
 
         function switchTab(tabId) {
             document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
