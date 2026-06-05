@@ -634,6 +634,7 @@
         <button class="tab-btn" onclick="switchTab('settings')"><i data-lucide="settings"></i>Settings</button>
         <button class="tab-btn" onclick="switchTab('logs')"><i data-lucide="terminal"></i>Logs</button>
         <button class="tab-btn" onclick="switchTab('setup')"><i data-lucide="help-circle"></i>Setup</button>
+        <button class="tab-btn" onclick="switchTab('users')"><i data-lucide="users"></i>Users</button>
         <button class="tab-btn" onclick="window.location.href='/logout'" style="margin-left: auto; color: var(--accent-red); opacity: 0.85;"><i data-lucide="log-out"></i>Logout</button>
     </nav>
 
@@ -1457,6 +1458,33 @@
                         <div id="change-pwd-status" style="margin-top: 0.8rem; font-size: 0.85rem; color: var(--accent-green)"></div>
                     </form>
                 </div>
+
+                <!-- Group 9: Security Limits & Emergency Kill-Switch -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="shield-alert"></i>System Guard & Rate Limits</h2></div>
+                    <form onsubmit="event.preventDefault(); saveSettingsGroup(['EMERGENCY_STOP', 'MAX_CALLS_PER_MINUTE', 'MAX_DAILY_CALLS'], 'set-emergency-stop', 'set-max-minute', 'set-max-daily')">
+                        <div class="form-group">
+                            <label for="set-emergency-stop">Emergency Kill-Switch</label>
+                            <select id="set-emergency-stop">
+                                <option value="false">Normal Operation (Allow Dispatches)</option>
+                                <option value="true">Emergency Suspended (Block All Calls)</option>
+                            </select>
+                        </div>
+                        <div class="grid-2col">
+                            <div class="form-group">
+                                <label for="set-max-minute">Max Calls Per Minute</label>
+                                <input type="number" id="set-max-minute" placeholder="e.g. 15">
+                            </div>
+                            <div class="form-group">
+                                <label for="set-max-daily">Max Calls Per 24 Hours</label>
+                                <input type="number" id="set-max-daily" placeholder="e.g. 500">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%">
+                            <i data-lucide="save"></i> Save Security Limits
+                        </button>
+                    </form>
+                </div>
             </div>
             </div>
         </section>
@@ -1524,6 +1552,54 @@
                 </div>
             </div>
         </section>
+
+        <!-- 👥 USERS PANEL (RBAC) -->
+        <section id="panel-users" class="tab-panel">
+            <div class="grid-2col">
+                <!-- Add User Card -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="user-plus"></i>Add Authorized User</h2></div>
+                    <form onsubmit="event.preventDefault(); addNewUser()">
+                        <div class="form-group">
+                            <label for="new-user-email">Email Address</label>
+                            <input type="email" id="new-user-email" required placeholder="email@domain.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-user-password">Password (min 6 characters)</label>
+                            <input type="password" id="new-user-password" required placeholder="Password">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-user-role">Role Privilege</label>
+                            <select id="new-user-role">
+                                <option value="user">User (Standard Access)</option>
+                                <option value="admin">Admin (Full Control)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%">
+                            <i data-lucide="user-check"></i> Add User Account
+                        </button>
+                        <div id="add-user-status" style="margin-top: 0.8rem; font-size: 0.85rem; color: var(--accent-green)"></div>
+                    </form>
+                </div>
+
+                <!-- Users Table Card -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="users"></i>Authorized Accounts</h2></div>
+                    <table class="leads-table" id="table-users">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th style="text-align: right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </main>
 
     <script>
@@ -1578,6 +1654,8 @@
                 loadAgentProfiles();
             } else if (tabId === 'settings') {
                 loadSettingsForm();
+            } else if (tabId === 'users') {
+                loadUsers();
             }
         }
 
@@ -2491,7 +2569,10 @@
                     "set-s3-bucket": "S3_BUCKET",
                     "set-s3-region": "S3_REGION",
                     "set-s3-endpoint": "S3_ENDPOINT_URL",
-                    "set-ai-post-process": "ENABLE_AI_POST_PROCESSING"
+                    "set-ai-post-process": "ENABLE_AI_POST_PROCESSING",
+                    "set-emergency-stop": "EMERGENCY_STOP",
+                    "set-max-minute": "MAX_CALLS_PER_MINUTE",
+                    "set-max-daily": "MAX_DAILY_CALLS"
                 };
 
                 for (let inputId in fields) {
@@ -2555,6 +2636,96 @@
                 } else {
                     const data = await res.json();
                     throw new Error(data.detail || "Update failed");
+                }
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const res = await fetch("/api/settings/users");
+                const data = await res.json();
+                const tbody = document.getElementById("users-table-body");
+                tbody.innerHTML = "";
+
+                if (!data.users || data.users.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-secondary)">No users configured</td></tr>`;
+                    return;
+                }
+
+                data.users.forEach(u => {
+                    const tr = document.createElement("tr");
+                    const badgeClass = u.role === "admin" ? "badge-green" : "badge-blue";
+                    tr.innerHTML = `
+                        <td><strong>${u.email}</strong></td>
+                        <td><span class="badge ${badgeClass}">${u.role}</span></td>
+                        <td style="text-align: right">
+                            <button class="btn btn-danger" style="padding: 0.3rem 0.6rem;" onclick="deleteUser('${u.email}')">
+                                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Delete
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                console.error("Failed to load users", err);
+            }
+        }
+
+        async function addNewUser() {
+            const email = document.getElementById("new-user-email").value.trim();
+            const password = document.getElementById("new-user-password").value;
+            const role = document.getElementById("new-user-role").value;
+            const statusEl = document.getElementById("add-user-status");
+
+            if (!email || !password) {
+                statusEl.style.color = "var(--accent-red)";
+                statusEl.textContent = "Please fill out all fields.";
+                return;
+            }
+
+            statusEl.style.color = "var(--accent-blue)";
+            statusEl.textContent = "Adding user account...";
+
+            try {
+                const res = await fetch("/api/settings/users", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password, role })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    statusEl.style.color = "var(--accent-green)";
+                    statusEl.textContent = data.message || "User account added successfully!";
+                    document.getElementById("new-user-email").value = "";
+                    document.getElementById("new-user-password").value = "";
+                    loadUsers();
+                } else {
+                    throw new Error(data.detail || "Failed to add user");
+                }
+            } catch (err) {
+                statusEl.style.color = "var(--accent-red)";
+                statusEl.textContent = err.message;
+            }
+        }
+
+        async function deleteUser(email) {
+            if (!confirm(`Are you sure you want to revoke access for ${email}?`)) return;
+
+            try {
+                const res = await fetch(`/api/settings/users/${encodeURIComponent(email)}`, {
+                    method: "DELETE"
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.message || "User account deleted.");
+                    loadUsers();
+                } else {
+                    throw new Error(data.detail || "Failed to delete user");
                 }
             } catch (err) {
                 alert(err.message);
