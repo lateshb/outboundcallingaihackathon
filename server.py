@@ -304,6 +304,10 @@ class UserCreateRequest(BaseModel):
     password: str
     role: str = "user"
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
 
 # -- Dashboard & Authentication --
 
@@ -401,6 +405,36 @@ async def api_add_user(req: UserCreateRequest):
     }
     await save_users(users)
     return {"status": "success", "message": f"User {email} added successfully"}
+
+@app.post("/api/settings/change-password")
+async def api_change_password(req: ChangePasswordRequest, request: Request, response: Response):
+    token = request.cookies.get("session_token")
+    email = await verify_session_token_and_get_email(token)
+    if not email:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    users = await get_users()
+    if email not in users:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user_data = users[email]
+    password_hash = user_data if isinstance(user_data, str) else user_data.get("password_hash")
+    
+    if not verify_password(req.current_password, password_hash):
+        raise HTTPException(status_code=400, detail="Invalid current password")
+        
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters long")
+        
+    new_hash = hash_password(req.new_password)
+    if isinstance(user_data, str):
+        users[email] = new_hash
+    else:
+        users[email]["password_hash"] = new_hash
+        
+    await save_users(users)
+    response.delete_cookie("session_token")
+    return {"status": "success", "message": "Password updated successfully. Logging out."}
 
 @app.delete("/api/settings/users/{email}")
 async def api_delete_user(email: str):

@@ -634,6 +634,7 @@
         <button class="tab-btn" onclick="switchTab('settings')"><i data-lucide="settings"></i>Settings</button>
         <button class="tab-btn" onclick="switchTab('logs')"><i data-lucide="terminal"></i>Logs</button>
         <button class="tab-btn" onclick="switchTab('setup')"><i data-lucide="help-circle"></i>Setup</button>
+        <button class="tab-btn" onclick="window.location.href='/logout'" style="margin-left: auto; color: var(--accent-red); opacity: 0.85;"><i data-lucide="log-out"></i>Logout</button>
     </nav>
 
     <main>
@@ -665,15 +666,21 @@
             <div class="charts-container">
                 <div class="card chart-card">
                     <div class="card-header"><h2 class="card-title"><i data-lucide="pie-chart"></i>Call Outcomes</h2></div>
-                    <canvas id="chart-outcomes"></canvas>
+                    <div style="position: relative; height: 250px; width: 100%;">
+                        <canvas id="chart-outcomes"></canvas>
+                    </div>
                 </div>
                 <div class="card chart-card">
                     <div class="card-header"><h2 class="card-title"><i data-lucide="trending-up"></i>Call Timeline (14 Days)</h2></div>
-                    <canvas id="chart-timeline"></canvas>
+                    <div style="position: relative; height: 250px; width: 100%;">
+                        <canvas id="chart-timeline"></canvas>
+                    </div>
                 </div>
                 <div class="card chart-card">
                     <div class="card-header"><h2 class="card-title"><i data-lucide="hourglass"></i>Avg Duration by Outcome</h2></div>
-                    <canvas id="chart-duration"></canvas>
+                    <div style="position: relative; height: 250px; width: 100%;">
+                        <canvas id="chart-duration"></canvas>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1426,6 +1433,28 @@
                         <button type="submit" class="btn btn-primary" style="width: 100%">
                             <i data-lucide="save"></i> Save Post-Processing Settings
                         </button>
+                </div>
+                
+                <!-- Group 8: Security & Change Password -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="shield-check"></i>Change Password</h2></div>
+                    <form onsubmit="event.preventDefault(); changePassword()">
+                        <div class="form-group">
+                            <label for="change-pwd-current">Current Password</label>
+                            <input type="password" id="change-pwd-current" required placeholder="Current Password">
+                        </div>
+                        <div class="form-group">
+                            <label for="change-pwd-new">New Password</label>
+                            <input type="password" id="change-pwd-new" required placeholder="New Password (min 6 characters)">
+                        </div>
+                        <div class="form-group">
+                            <label for="change-pwd-confirm">Confirm New Password</label>
+                            <input type="password" id="change-pwd-confirm" required placeholder="Confirm New Password">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%">
+                            <i data-lucide="key"></i> Update Password
+                        </button>
+                        <div id="change-pwd-status" style="margin-top: 0.8rem; font-size: 0.85rem; color: var(--accent-green)"></div>
                     </form>
                 </div>
             </div>
@@ -2529,6 +2558,49 @@
                 }
             } catch (err) {
                 alert(err.message);
+            }
+        }
+
+        async function changePassword() {
+            const current = document.getElementById("change-pwd-current").value;
+            const newPwd = document.getElementById("change-pwd-new").value;
+            const confirmPwd = document.getElementById("change-pwd-confirm").value;
+            const statusEl = document.getElementById("change-pwd-status");
+
+            if (newPwd.length < 6) {
+                statusEl.style.color = "var(--accent-red)";
+                statusEl.textContent = "New password must be at least 6 characters long.";
+                return;
+            }
+            if (newPwd !== confirmPwd) {
+                statusEl.style.color = "var(--accent-red)";
+                statusEl.textContent = "Confirm password does not match new password.";
+                return;
+            }
+
+            statusEl.style.color = "var(--accent-blue)";
+            statusEl.textContent = "Updating password...";
+
+            try {
+                const res = await fetch("/api/settings/change-password", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ current_password: current, new_password: newPwd })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    statusEl.style.color = "var(--accent-green)";
+                    statusEl.textContent = "Password changed successfully! Logging out...";
+                    setTimeout(() => {
+                        window.location.href = "/logout";
+                    }, 1500);
+                } else {
+                    throw new Error(data.detail || "Password change failed");
+                }
+            } catch (err) {
+                statusEl.style.color = "var(--accent-red)";
+                statusEl.textContent = err.message;
             }
         }
 
