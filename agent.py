@@ -7,10 +7,8 @@ import certifi
 from typing import Optional
 
 from dotenv import load_dotenv
-load_dotenv(".env")
 
-
-# Patch SSL before any network import
+# Patch SSL before any network import — reused from existing LIvekitAIVoice project pattern
 _orig_ssl = ssl.create_default_context
 def _certifi_ssl(purpose=ssl.Purpose.SERVER_AUTH, **kwargs):
     if not kwargs.get("cafile") and not kwargs.get("capath") and not kwargs.get("cadata"):
@@ -31,11 +29,13 @@ from db import init_db, log_error, get_enabled_tools
 from prompts import build_prompt
 from tools import AppointmentTools
 
+# load_dotenv without override — VPS env vars always win.
+# On a VPS the .env file won't exist — this is a no-op in production.
+load_dotenv(".env")
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("outbound-agent")
 
-
-SIP_DOMAIN = os.getenv("VOBIZ_SIP_DOMAIN", "")
+SIP_DOMAIN = os.getenv("TWILIO_SIP_DOMAIN", "")
 
 
 async def _log(level: str, msg: str, detail: str = "") -> None:
@@ -59,17 +59,13 @@ def load_db_settings_to_env() -> None:
         client = create_client(url, key)
         result = client.table("settings").select("key, value").execute()
         for row in (result.data or []):
-            k, v = row.get("key"), row.get("value")
-            if k and v:
-                # If key is already set on VPS/Docker environment, do NOT overwrite it!
-                if k not in os.environ or os.environ[k] == "":
-                    os.environ[k] = v
+            if row.get("value"):
+                os.environ[row["key"]] = row["value"]
     except Exception as exc:
         logger.warning("Could not load settings from Supabase: %s", exc)
 
 
-
-# -- Import Google plugin paths --
+# ── Import Google plugin paths ───────────────────────────────────────────────
 _google_realtime = None
 _google_beta_realtime = None
 _google_llm = None
@@ -103,16 +99,18 @@ except ImportError:
     pass
 
 
-# -- Session factory --
+# ── Session factory ──────────────────────────────────────────────────────────
 
 def _build_session(tools: list, system_prompt: str) -> AgentSession:
     """
     Build AgentSession with Gemini Live or pipeline fallback.
 
-    CRITICAL SILENCE-PREVENTION CONFIG - all 3 required:
-    1. SessionResumptionConfig(transparent=True) - auto-reconnects after timeout
-    2. ContextWindowCompressionConfig - sliding window prevents token limit freeze
-    3. RealtimeInputConfig(END_SENSITIVITY_LOW) - less aggressive VAD, 2s silence threshold
+    CRITICAL SILENCE-PREVENTION CONFIG — all 3 required:
+    1. SessionResumptionConfig(transparent=True) → auto-reconnects after timeout
+    2. ContextWindowCompressionConfig → sliding window prevents token limit freeze
+    3. RealtimeInputConfig(END_SENSITIVITY_LOW) → less aggressive VAD, 2s silence threshold
+
+    ⚠️ EndSensitivity MUST use full string form: END_SENSITIVITY_LOW (not .LOW — AttributeError!)
     """
     gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-live-preview")
     gemini_voice = os.getenv("GEMINI_TTS_VOICE", "Aoede")
@@ -167,12 +165,17 @@ class OutboundAssistant(Agent):
 
 async def entrypoint(ctx: agents.JobContext) -> None:
     """
-    Main entrypoint. Called per job.
+    Main entrypoint. Called per job. Reads metadata JSON from ctx.job.metadata.
 
-    DIAL-FIRST PATTERN - CRITICAL:
+    DIAL-FIRST PATTERN — CRITICAL:
     Start Gemini Live ONLY after create_sip_participant(wait_until_answered=True) completes.
+    If you start the session during ring time (~20-30s), the Gemini idle timeout fires
+    and the session dies silently before the call is even answered.
+
+    NO close_on_disconnect — SIP legs have brief audio dropouts that look like disconnects.
+    Instead, watch participant_disconnected event for the specific SIP identity.
     """
-    await _log("info", f"Job started - room: {ctx.room.name}")
+    await _log("info", f"Job started — room: {ctx.room.name}")
 
     phone_number: Optional[str] = None
     lead_name = "there"
@@ -197,7 +200,7 @@ async def entrypoint(ctx: agents.JobContext) -> None:
         except (json.JSONDecodeError, AttributeError):
             await _log("warning", "Invalid JSON in job metadata")
 
-    await _log("info", f"Call job received - phone={phone_number} lead={lead_name} biz={business_name}")
+    await _log("info", f"Call job received — phone={phone_number} lead={lead_name} biz={business_name}")
 
     system_prompt = build_prompt(lead_name=lead_name, business_name=business_name,
                                   service_type=service_type, custom_prompt=custom_prompt)
@@ -216,15 +219,15 @@ async def entrypoint(ctx: agents.JobContext) -> None:
     else:
         enabled_tools = await get_enabled_tools()
 
-    # -- Connect --
+    # ── Connect ──────────────────────────────────────────────────────────────
     await ctx.connect()
     await _log("info", f"Connected to LiveKit room: {ctx.room.name}")
 
-    # -- Dial - MUST come before session.start() --
+    # ── Dial — MUST come before session.start() ──────────────────────────────
     if phone_number:
         trunk_id = os.getenv("OUTBOUND_TRUNK_ID")
         if not trunk_id:
-            await _log("error", "OUTBOUND_TRUNK_ID not set - cannot place outbound call")
+            await _log("error", "OUTBOUND_TRUNK_ID not set — cannot place outbound call")
             ctx.shutdown()
             return
         await _log("info", f"Dialing {phone_number} via SIP trunk {trunk_id}")
@@ -242,17 +245,17 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             await _log("error", f"SIP dial FAILED for {phone_number}: {exc}")
             ctx.shutdown()
             return
-        await _log("info", f"Call ANSWERED - {phone_number} picked up, starting AI session now")
+        await _log("info", f"Call ANSWERED — {phone_number} picked up, starting AI session now")
 
-    # -- Build and start Gemini Live --
+    # ── Build and start Gemini Live ──────────────────────────────────────────
     gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-live-preview")
-    await _log("info", f"Building AI session - model={gemini_model}")
+    await _log("info", f"Building AI session — model={gemini_model}")
     active_tools = tool_ctx.build_tool_list(enabled_tools)
     await _log("info", f"Tools loaded: {[t.__name__ for t in active_tools]}")
     session = _build_session(tools=active_tools, system_prompt=system_prompt)
 
     # Use RoomOptions if available (non-deprecated), else fall back
-    # NEVER use close_on_disconnect=True with SIP
+    # NEVER use close_on_disconnect=True with SIP — drops on any audio blip
     if _HAS_ROOM_OPTIONS:
         from livekit.agents import RoomOptions as _RO
         _session_kwargs = dict(
@@ -268,9 +271,9 @@ async def entrypoint(ctx: agents.JobContext) -> None:
         )
 
     await session.start(**_session_kwargs)
-    await _log("info", "Agent session started - AI ready, generating greeting")
+    await _log("info", "Agent session started — AI ready, generating greeting")
 
-    # -- Optional S3 recording --
+    # ── Optional S3 recording ────────────────────────────────────────────────
     if phone_number:
         _aws_key    = os.getenv("S3_ACCESS_KEY_ID") or os.getenv("AWS_ACCESS_KEY_ID", "")
         _aws_secret = os.getenv("S3_SECRET_ACCESS_KEY") or os.getenv("AWS_SECRET_ACCESS_KEY", "")
@@ -285,28 +288,22 @@ async def entrypoint(ctx: agents.JobContext) -> None:
                     file_outputs=[api.EncodedFileOutput(
                         file_type=api.EncodedFileType.OGG, filepath=_recording_path,
                         s3=api.S3Upload(access_key=_aws_key, secret=_aws_secret,
-                                        bucket=_aws_bucket, region=_s3_region, endpoint=_s3_endpoint,
-                                        force_path_style=True),
+                                        bucket=_aws_bucket, region=_s3_region, endpoint=_s3_endpoint),
                     )],
                 )
                 _egress = await ctx.api.egress.start_room_composite_egress(_egress_req)
                 _s3_ep = _s3_endpoint.rstrip("/")
-                if "/storage/v1/s3" in _s3_ep:
-                    _public_ep = _s3_ep.replace("/storage/v1/s3", "/storage/v1/object/public")
-                    tool_ctx.recording_url = f"{_public_ep}/{_aws_bucket}/{_recording_path}"
-                else:
-                    tool_ctx.recording_url = (f"{_s3_ep}/{_aws_bucket}/{_recording_path}"
-                                               if _s3_ep else f"s3://{_aws_bucket}/{_recording_path}")
+                tool_ctx.recording_url = (f"{_s3_ep}/{_aws_bucket}/{_recording_path}"
+                                           if _s3_ep else f"s3://{_aws_bucket}/{_recording_path}")
                 await _log("info", f"Recording started: egress={_egress.egress_id}")
-
             except Exception as _exc:
                 await _log("warning", f"Recording start failed (non-fatal): {_exc}")
 
-    # -- Greeting --
+    # ── Greeting ─────────────────────────────────────────────────────────────
     # gemini-3.1 and gemini-2.5 native-audio speak autonomously from system prompt.
-    # generate_reply() is blocked by the plugin for these models.
+    # generate_reply() is blocked by the plugin for these models — skip it entirely.
     _active_model = os.getenv("GEMINI_MODEL", "")
-    if "3.1" in _active_model or "2.5" in _active_model:
+    if "3.1" in _active_model:
         await _log("info", "Gemini native-audio: model will greet autonomously from system prompt")
     else:
         greeting = (
@@ -318,7 +315,9 @@ async def entrypoint(ctx: agents.JobContext) -> None:
         except Exception as _gr_exc:
             await _log("warning", f"generate_reply failed: {_gr_exc}")
 
-    # -- Keep session alive until SIP participant actually leaves --
+    # ── Keep session alive until SIP participant actually leaves ─────────────
+    # Without this block, the entrypoint returns and the process spins down.
+    # We watch participant_disconnected for the specific SIP identity.
     if phone_number:
         _sip_identity = f"sip_{phone_number}"
         _disconnect_event = asyncio.Event()
@@ -335,25 +334,10 @@ async def entrypoint(ctx: agents.JobContext) -> None:
         try:
             await asyncio.wait_for(_disconnect_event.wait(), timeout=3600)
         except asyncio.TimeoutError:
-            await _log("warning", "Call reached 1-hour safety timeout - shutting down")
+            await _log("warning", "Call reached 1-hour safety timeout — shutting down")
 
-        await _log("info", f"SIP participant disconnected - ending session for {phone_number}")
+        await _log("info", f"SIP participant disconnected — ending session for {phone_number}")
         await session.aclose()
-        if not getattr(tool_ctx, "logged", False):
-            try:
-                from db import log_call
-                duration = int(time.time() - tool_ctx._call_start_time)
-                await log_call(
-                    phone_number=phone_number,
-                    lead_name=lead_name,
-                    outcome="completed",
-                    reason="Participant disconnected",
-                    duration_seconds=duration,
-                    recording_url=tool_ctx.recording_url
-                )
-                tool_ctx.logged = True
-            except Exception as _log_exc:
-                await _log("error", f"Fallback call logging failed: {_log_exc}")
     else:
         _done = asyncio.Event()
         ctx.room.on("disconnected", lambda: _done.set())
@@ -361,6 +345,119 @@ async def entrypoint(ctx: agents.JobContext) -> None:
             await asyncio.wait_for(_done.wait(), timeout=3600)
         except asyncio.TimeoutError:
             pass
+        await session.aclose()
+
+    # ── Post-call AI Analysis ───────────────────────────────────────────────
+    try:
+        import time
+        from db import get_setting, log_call, update_call_insights
+        import google.generativeai as genai
+        
+        enable_analysis = await get_setting("ENABLE_AI_POST_PROCESSING", "true")
+        if str(enable_analysis).lower() in ("true", "1", "yes"):
+            await _log("info", f"Running post-call AI analysis for {phone_number or 'incoming'}")
+            
+            transcript_lines = []
+            for msg in session.history.messages:
+                role = msg.role
+                if role not in ("user", "assistant"):
+                    continue
+                
+                content_str = ""
+                if hasattr(msg, "content"):
+                    if isinstance(msg.content, str):
+                        content_str = msg.content
+                    elif isinstance(msg.content, list):
+                        parts = []
+                        for part in msg.content:
+                            if isinstance(part, str):
+                                parts.append(part)
+                            elif hasattr(part, "text"):
+                                parts.append(part.text)
+                            elif hasattr(part, "content"):
+                                parts.append(part.content)
+                        content_str = " ".join(parts)
+                elif hasattr(msg, "text") and isinstance(msg.text, str):
+                    content_str = msg.text
+                    
+                if content_str.strip():
+                    speaker = "Lead" if role == "user" else "Agent"
+                    transcript_lines.append(f"{speaker}: {content_str.strip()}")
+            
+            transcript_text = "\n".join(transcript_lines)
+            
+            if transcript_text.strip():
+                gemini_key = os.getenv("GOOGLE_API_KEY")
+                if gemini_key:
+                    genai.configure(api_key=gemini_key)
+                    model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+                    if "live" in model_name or "preview" in model_name:
+                        model_name = "gemini-1.5-flash"
+                    
+                    model = genai.GenerativeModel(model_name)
+                    prompt = f"""
+You are an AI call analysis expert. Analyze the following telephone call transcript between the Lead and the Agent.
+Extract:
+1. The call outcome ('booked', 'not_interested', 'wrong_number', 'voicemail', 'no_answer', 'callback_requested').
+2. The interest level of the lead ('interested', 'not_interested', 'neutral', 'callback').
+3. A concise summary of the conversation (2-3 sentences).
+4. The main reason for the outcome.
+
+Format the output strictly as a JSON object with keys:
+"outcome", "interest_level", "summary", "reason"
+
+Transcript:
+{transcript_text}
+"""
+                    response = await asyncio.to_thread(
+                        model.generate_content,
+                        prompt,
+                        generation_config={"response_mime_type": "application/json"}
+                    )
+                    
+                    try:
+                        analysis = json.loads(response.text)
+                        outcome = analysis.get("outcome", "neutral")
+                        reason = analysis.get("reason", "")
+                        summary = analysis.get("summary", "")
+                        interest_level = analysis.get("interest_level", "neutral")
+                        
+                        await _log("info", f"AI Post-Call Insights: interest={interest_level}, outcome={outcome}")
+                        
+                        if tool_ctx.call_logged and tool_ctx.call_log_id:
+                            await update_call_insights(tool_ctx.call_log_id, summary, interest_level)
+                        else:
+                            duration = int(time.time() - tool_ctx._call_start_time)
+                            await log_call(
+                                phone_number=phone_number or "unknown",
+                                lead_name=lead_name,
+                                outcome=outcome,
+                                reason=reason,
+                                duration_seconds=duration,
+                                recording_url=tool_ctx.recording_url,
+                                summary=summary,
+                                interest_level=interest_level
+                            )
+                    except Exception as json_err:
+                        await _log("error", f"Failed to parse Gemini JSON: {json_err}", detail=getattr(response, "text", ""))
+                else:
+                    await _log("warning", "No GOOGLE_API_KEY available for post-call analysis")
+            else:
+                await _log("info", "Transcript is empty — skipping post-call analysis")
+        else:
+            await _log("info", "Post-call AI analysis is disabled in settings")
+            if not tool_ctx.call_logged:
+                duration = int(time.time() - tool_ctx._call_start_time)
+                await log_call(
+                    phone_number=phone_number or "unknown",
+                    lead_name=lead_name,
+                    outcome="no_answer" if duration < 10 else "neutral",
+                    reason="Call disconnected before completion.",
+                    duration_seconds=duration,
+                    recording_url=tool_ctx.recording_url
+                )
+    except Exception as analysis_err:
+        await _log("error", f"Error in post-call analysis: {analysis_err}")
 
 
 if __name__ == "__main__":

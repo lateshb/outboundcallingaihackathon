@@ -596,13 +596,13 @@ async def api_setup_trunk():
     url    = await eff("LIVEKIT_URL")
     key    = await eff("LIVEKIT_API_KEY")
     secret = await eff("LIVEKIT_API_SECRET")
-    sip_domain = await eff("VOBIZ_SIP_DOMAIN")
-    username   = await eff("VOBIZ_USERNAME")
-    password   = await eff("VOBIZ_PASSWORD")
-    phone      = await eff("VOBIZ_OUTBOUND_NUMBER")
+    sip_domain = (await eff("VOBIZ_SIP_DOMAIN")) or (await eff("TWILIO_SIP_DOMAIN"))
+    username   = (await eff("VOBIZ_USERNAME")) or (await eff("TWILIO_SIP_USERNAME")) or (await eff("TWILIO_ACCOUNT_SID"))
+    password   = (await eff("VOBIZ_PASSWORD")) or (await eff("TWILIO_SIP_PASSWORD")) or (await eff("TWILIO_AUTH_TOKEN"))
+    phone      = (await eff("VOBIZ_OUTBOUND_NUMBER")) or (await eff("TWILIO_OUTBOUND_NUMBER"))
 
     if not all([url, key, secret, sip_domain, username, password, phone]):
-        raise HTTPException(400, "Configure LiveKit and Vobiz credentials in Settings first.")
+        raise HTTPException(400, "Configure LiveKit and VoBiz/SIP credentials in Settings first.")
 
     try:
         from livekit import api as lk_api

@@ -1,5 +1,7 @@
 -- ═══════════════════════════════════════════════════════
 -- OutboundAI — Complete Database Schema
+-- Run once in Supabase Dashboard → SQL Editor
+-- All statements use IF NOT EXISTS — safe to re-run
 -- ═══════════════════════════════════════════════════════
 
 CREATE TABLE IF NOT EXISTS appointments (
@@ -45,6 +47,8 @@ ALTER TABLE error_logs    DISABLE ROW LEVEL SECURITY;
 
 ALTER TABLE call_logs ADD COLUMN IF NOT EXISTS recording_url TEXT;
 ALTER TABLE call_logs ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE call_logs ADD COLUMN IF NOT EXISTS summary TEXT;
+ALTER TABLE call_logs ADD COLUMN IF NOT EXISTS interest_level TEXT;
 
 CREATE TABLE IF NOT EXISTS campaigns (
     id TEXT PRIMARY KEY,

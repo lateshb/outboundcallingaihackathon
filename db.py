@@ -1,14 +1,18 @@
+"""
+db.py — Supabase database module.
+Loads from Supabase client if URL and service key are present.
+"""
+
 import os
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 from collections import defaultdict
-from dotenv import load_dotenv
 
-load_dotenv(".env")
-
+# ---------------------------------------------------------------------------
+# DEFAULTS — loaded from environment variables or Supabase settings table.
+# ---------------------------------------------------------------------------
 DEFAULTS = {
-
     "LIVEKIT_URL":             os.getenv("LIVEKIT_URL", ""),
     "LIVEKIT_API_KEY":         os.getenv("LIVEKIT_API_KEY", ""),
     "LIVEKIT_API_SECRET":      os.getenv("LIVEKIT_API_SECRET", ""),
@@ -16,15 +20,18 @@ DEFAULTS = {
     "GEMINI_MODEL":            os.getenv("GEMINI_MODEL", "gemini-3.1-flash-live-preview"),
     "GEMINI_TTS_VOICE":        os.getenv("GEMINI_TTS_VOICE", "Aoede"),
     "USE_GEMINI_REALTIME":     os.getenv("USE_GEMINI_REALTIME", "true"),
-    "VOBIZ_SIP_DOMAIN":        os.getenv("VOBIZ_SIP_DOMAIN", ""),
-    "VOBIZ_USERNAME":          os.getenv("VOBIZ_USERNAME", ""),
-    "VOBIZ_PASSWORD":          os.getenv("VOBIZ_PASSWORD", ""),
-    "VOBIZ_OUTBOUND_NUMBER":   os.getenv("VOBIZ_OUTBOUND_NUMBER", ""),
+    "TWILIO_SIP_DOMAIN":       os.getenv("TWILIO_SIP_DOMAIN", ""),
+    "TWILIO_ACCOUNT_SID":      os.getenv("TWILIO_ACCOUNT_SID", ""),
+    "TWILIO_AUTH_TOKEN":       os.getenv("TWILIO_AUTH_TOKEN", ""),
+    "TWILIO_OUTBOUND_NUMBER":  os.getenv("TWILIO_OUTBOUND_NUMBER", ""),
     "OUTBOUND_TRUNK_ID":       os.getenv("OUTBOUND_TRUNK_ID", ""),
     "DEFAULT_TRANSFER_NUMBER": os.getenv("DEFAULT_TRANSFER_NUMBER", ""),
     "SUPABASE_URL":            os.getenv("SUPABASE_URL", ""),
     "SUPABASE_SERVICE_KEY":    os.getenv("SUPABASE_SERVICE_KEY", ""),
     "DEEPGRAM_API_KEY":        os.getenv("DEEPGRAM_API_KEY", ""),
+    "TWILIO_SIP_USERNAME":     os.getenv("TWILIO_SIP_USERNAME", ""),
+    "TWILIO_SIP_PASSWORD":     os.getenv("TWILIO_SIP_PASSWORD", ""),
+    "ENABLE_AI_POST_PROCESSING": os.getenv("ENABLE_AI_POST_PROCESSING", "true"),
 }
 
 
@@ -37,9 +44,9 @@ SUPABASE_KEY = _default("SUPABASE_SERVICE_KEY")
 
 SENSITIVE_KEYS = {
     "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET", "GOOGLE_API_KEY",
-    "VOBIZ_PASSWORD", "TWILIO_AUTH_TOKEN", "SUPABASE_SERVICE_KEY",
+    "TWILIO_AUTH_TOKEN", "SUPABASE_SERVICE_KEY",
     "AWS_SECRET_ACCESS_KEY", "S3_SECRET_ACCESS_KEY", "CALCOM_API_KEY",
-    "DEEPGRAM_API_KEY",
+    "DEEPGRAM_API_KEY", "TWILIO_SIP_PASSWORD",
 }
 
 
@@ -57,7 +64,7 @@ def init_db() -> None:
     url = os.getenv("SUPABASE_URL", SUPABASE_URL)
     key = os.getenv("SUPABASE_SERVICE_KEY", SUPABASE_KEY)
     if not url or not key:
-        print("Warning: SUPABASE_URL or SUPABASE_SERVICE_KEY not set.")
+        print("INFO: SUPABASE_URL or SUPABASE_SERVICE_KEY not set — database disabled.")
         return
     try:
         db = _sdb()
@@ -65,10 +72,10 @@ def init_db() -> None:
         print("Supabase connected")
     except Exception as exc:
         print(f"Supabase connection failed: {exc}")
-        print("   Run supabase_schema.sql in your Supabase Dashboard SQL Editor")
+        print("   Run supabase_schema.sql in your Supabase Dashboard -> SQL Editor")
 
 
-# -- Settings --
+# ── Settings ─────────────────────────────────────────────────────────────────
 
 async def get_all_settings() -> dict:
     db = await _adb()
@@ -76,12 +83,13 @@ async def get_all_settings() -> dict:
     KNOWN_KEYS = [
         "LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET",
         "GOOGLE_API_KEY", "GEMINI_MODEL", "GEMINI_TTS_VOICE", "USE_GEMINI_REALTIME",
-        "VOBIZ_SIP_DOMAIN", "VOBIZ_USERNAME", "VOBIZ_PASSWORD",
-        "VOBIZ_OUTBOUND_NUMBER", "OUTBOUND_TRUNK_ID", "DEFAULT_TRANSFER_NUMBER",
-        "DEEPGRAM_API_KEY", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER",
+        "TWILIO_SIP_DOMAIN", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN",
+        "TWILIO_SIP_USERNAME", "TWILIO_SIP_PASSWORD",
+        "TWILIO_OUTBOUND_NUMBER", "OUTBOUND_TRUNK_ID", "DEFAULT_TRANSFER_NUMBER",
+        "DEEPGRAM_API_KEY",
         "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY", "S3_ENDPOINT_URL", "S3_REGION", "S3_BUCKET",
         "CALCOM_API_KEY", "CALCOM_EVENT_TYPE_ID", "CALCOM_TIMEZONE",
-        "ENABLED_TOOLS", "EMERGENCY_STOP", "MAX_CALLS_PER_MINUTE", "MAX_DAILY_CALLS",
+        "ENABLED_TOOLS", "ENABLE_AI_POST_PROCESSING",
     ]
     out: dict = {}
     for k in KNOWN_KEYS:
@@ -94,18 +102,10 @@ async def get_all_settings() -> dict:
         k, v = row["key"], row["value"]
         if k == "TEST_KEY":
             continue
-        # Environment variables take priority! If env_val is configured on VPS, show that instead.
-        env_val = os.getenv(k)
-        if env_val:
-            if k in SENSITIVE_KEYS:
-                out[k] = {"value": "", "configured": True}
-            else:
-                out[k] = {"value": env_val, "configured": True}
+        if k in SENSITIVE_KEYS:
+            out[k] = {"value": "", "configured": bool(v)}
         else:
-            if k in SENSITIVE_KEYS:
-                out[k] = {"value": "", "configured": bool(v)}
-            else:
-                out[k] = {"value": v, "configured": bool(v)}
+            out[k] = {"value": v, "configured": bool(v)}
     return out
 
 
@@ -122,10 +122,6 @@ async def save_settings(data: dict) -> None:
 
 
 async def get_setting(key: str, default: str = "") -> str:
-    # VPS environment variables are the single source of truth!
-    env_val = os.getenv(key)
-    if env_val is not None and env_val != "":
-        return env_val
     db = await _adb()
     result = await db.table("settings").select("value").eq("key", key).maybe_single().execute()
     if result and result.data:
@@ -141,7 +137,6 @@ async def set_setting(key: str, value: str) -> None:
     ).execute()
 
 
-
 async def get_enabled_tools() -> list:
     raw = await get_setting("ENABLED_TOOLS", "")
     if not raw:
@@ -154,7 +149,7 @@ async def get_enabled_tools() -> list:
         return []
 
 
-# -- Error logs --
+# ── Error logs ────────────────────────────────────────────────────────────────
 
 async def log_error(source: str, message: str, detail: str = "", level: str = "error") -> None:
     try:
@@ -193,7 +188,7 @@ async def clear_errors() -> None:
     await db.table("error_logs").delete().neq("id", "").execute()
 
 
-# -- Appointments --
+# ── Appointments ──────────────────────────────────────────────────────────────
 
 async def insert_appointment(name: str, phone: str, date: str, time: str, service: str) -> str:
     full_id = str(uuid.uuid4())
@@ -255,12 +250,13 @@ async def get_appointments_by_phone(phone: str) -> list:
     return result.data or []
 
 
-# -- Call logs --
+# ── Call logs ─────────────────────────────────────────────────────────────────
 
 async def log_call(
     phone_number: str, lead_name: Optional[str], outcome: str, reason: str,
     duration_seconds: int, recording_url: Optional[str] = None, notes: Optional[str] = None,
-) -> None:
+    summary: Optional[str] = None, interest_level: Optional[str] = None,
+) -> str:
     db = await _adb()
     row: dict = {
         "id": str(uuid.uuid4()), "phone_number": phone_number, "lead_name": lead_name,
@@ -271,7 +267,53 @@ async def log_call(
         row["recording_url"] = recording_url
     if notes:
         row["notes"] = notes
-    await db.table("call_logs").insert(row).execute()
+    if summary:
+        row["summary"] = summary
+    if interest_level:
+        row["interest_level"] = interest_level
+
+    try:
+        await db.table("call_logs").insert(row).execute()
+    except Exception as exc:
+        import logging
+        logging.getLogger("db").warning("Failed to insert call log with new columns, retrying with fallback: %s", exc)
+        fallback_notes = ""
+        if summary:
+            fallback_notes += f"[AI Summary]: {summary}\n"
+        if interest_level:
+            fallback_notes += f"[AI Interest Level]: {interest_level}\n"
+        if notes:
+            fallback_notes += f"[Notes]: {notes}"
+        
+        row.pop("summary", None)
+        row.pop("interest_level", None)
+        if fallback_notes:
+            row["notes"] = fallback_notes.strip()
+        await db.table("call_logs").insert(row).execute()
+    return row["id"]
+
+
+async def update_call_insights(call_id: str, summary: str, interest_level: str) -> None:
+    db = await _adb()
+    row = {"summary": summary, "interest_level": interest_level}
+    try:
+        await db.table("call_logs").update(row).eq("id", call_id).execute()
+    except Exception as exc:
+        import logging
+        logging.getLogger("db").warning("Failed to update call log columns, falling back: %s", exc)
+        # Fallback: update notes column
+        result = await db.table("call_logs").select("notes").eq("id", call_id).maybe_single().execute()
+        existing_notes = ""
+        if result and result.data:
+            existing_notes = result.data.get("notes") or ""
+        
+        fallback_notes = f"[AI Summary]: {summary}\n[AI Interest Level]: {interest_level}"
+        if existing_notes:
+            if "[AI Summary]" not in existing_notes:
+                fallback_notes = f"{fallback_notes}\n[Notes]: {existing_notes}"
+            else:
+                fallback_notes = existing_notes # Don't duplicate
+        await db.table("call_logs").update({"notes": fallback_notes}).eq("id", call_id).execute()
 
 
 async def get_all_calls(page: int = 1, limit: int = 20) -> list:
@@ -312,7 +354,7 @@ async def get_contacts() -> list:
     return sorted(contacts.values(), key=lambda c: c["last_call"], reverse=True)
 
 
-# -- Stats --
+# ── Stats ─────────────────────────────────────────────────────────────────────
 
 async def get_stats() -> dict:
     db = await _adb()
@@ -323,21 +365,20 @@ async def get_stats() -> dict:
     durations      = [r["duration_seconds"] for r in rows if r.get("duration_seconds")]
     avg_dur        = sum(durations) / len(durations) if durations else 0
     booking_rate   = round((booked / total_calls * 100) if total_calls else 0, 1)
+    # Outcomes breakdown
     outcomes: dict = {}
     for r in rows:
         o = r.get("outcome") or "unknown"
         outcomes[o] = outcomes.get(o, 0) + 1
+    # Timeline: calls per day last 14 days
     daily: dict = defaultdict(int)
     for r in rows:
         ts = (r.get("timestamp") or "")[:10]
         if ts:
             daily[ts] += 1
     today = datetime.now().date()
-    timeline = [
-        {"date": (today - timedelta(days=i)).isoformat(),
-         "count": daily.get((today - timedelta(days=i)).isoformat(), 0)}
-        for i in range(13, -1, -1)
-    ]
+    timeline = [{"date": (today - timedelta(days=i)).isoformat(), "count": daily.get((today - timedelta(days=i)).isoformat(), 0)} for i in range(13, -1, -1)]
+    # Avg duration by outcome
     dur_sum: dict = defaultdict(float)
     dur_cnt: dict = defaultdict(int)
     for r in rows:
@@ -354,7 +395,7 @@ async def get_stats() -> dict:
     }
 
 
-# -- Campaigns --
+# ── Campaigns ─────────────────────────────────────────────────────────────────
 
 async def create_campaign(
     name: str, contacts_json: str, schedule_type: str = "once",
@@ -409,7 +450,7 @@ async def delete_campaign(campaign_id: str) -> bool:
     return len(result.data or []) > 0
 
 
-# -- Contact Memory --
+# ── Contact Memory ────────────────────────────────────────────────────────────
 
 async def add_contact_memory(phone: str, insight: str) -> None:
     db = await _adb()
@@ -437,7 +478,7 @@ async def compress_contact_memory(phone: str, compressed: str) -> None:
     }).execute()
 
 
-# -- Agent Profiles --
+# ── Agent Profiles ────────────────────────────────────────────────────────────
 
 async def get_all_agent_profiles() -> list:
     db = await _adb()

@@ -31,9 +31,10 @@ class AppointmentTools(llm.ToolContext):
         self.phone_number = phone_number
         self.lead_name = lead_name
         self._call_start_time = time.time()
-        self._sip_domain = os.getenv("VOBIZ_SIP_DOMAIN", "")
+        self._sip_domain = os.getenv("TWILIO_SIP_DOMAIN", "")
         self.recording_url: Optional[str] = None
-        self.logged = False
+        self.call_logged = False
+        self.call_log_id: Optional[str] = None
         super().__init__(tools=[])
 
     def build_tool_list(self, enabled: list) -> list:
@@ -62,7 +63,7 @@ class AppointmentTools(llm.ToolContext):
             next_slot = await get_next_available(date, time)
             return f"unavailable: next available slot is {next_slot}"
         except Exception as exc:
-            return "Unable to check availability right now."
+            return "Unable to check availability right now — please suggest a date and I will confirm."
 
     @llm.function_tool
     async def book_appointment(self, name: str, phone: str, date: str, time: str, service: str) -> str:
@@ -86,15 +87,14 @@ class AppointmentTools(llm.ToolContext):
         """
         duration = int(time.time() - self._call_start_time)
         try:
-            await log_call(
+            self.call_log_id = await log_call(
                 phone_number=self.phone_number or "unknown",
                 lead_name=self.lead_name, outcome=outcome, reason=reason,
                 duration_seconds=duration, recording_url=self.recording_url,
             )
-            self.logged = True
+            self.call_logged = True
         except Exception as exc:
             logger.error("Failed to log call: %s", exc)
-            self.logged = True
         try:
             await self.ctx.room.disconnect()
         except Exception:
@@ -172,16 +172,16 @@ class AppointmentTools(llm.ToolContext):
             if memories:
                 lines.append(f"\nREMEMBERED ({len(memories)} notes):")
                 for m in memories[:10]:
-                    lines.append(f"  - {m['insight']}")
+                    lines.append(f"  • {m['insight']}")
             if calls:
                 lines.append(f"\nCALL HISTORY ({len(calls)} calls):")
                 for c in calls[:5]:
                     ts = (c.get("timestamp") or "")[:16]
-                    lines.append(f"  - {ts} -- {c.get('outcome','?')}: {c.get('reason','')}")
+                    lines.append(f"  • {ts} — {c.get('outcome','?')}: {c.get('reason','')}")
             if appointments:
                 lines.append(f"\nAPPOINTMENTS ({len(appointments)}):")
                 for a in appointments[:3]:
-                    lines.append(f"  - {a.get('date')} {a.get('time')} -- {a.get('service')} [{a.get('status')}]")
+                    lines.append(f"  • {a.get('date')} {a.get('time')} — {a.get('service')} [{a.get('status')}]")
             return "\n".join(lines)
         except Exception as exc:
             return "Unable to retrieve contact history."
@@ -191,10 +191,11 @@ class AppointmentTools(llm.ToolContext):
         """
         Store a key insight about this lead for future calls.
         Use whenever you learn something useful: preferences, objections, timing, family info.
+        Examples: "Prefers morning calls", "Has 2 kids, interested in family plan", "Callback in 2 weeks"
         insight: the detail to remember
         """
         if not self.phone_number:
-            return "Cannot remember -- no phone number for this call."
+            return "Cannot remember — no phone number for this call."
         try:
             await add_contact_memory(self.phone_number, insight)
             memories = await get_contact_memory(self.phone_number)
@@ -234,7 +235,7 @@ class AppointmentTools(llm.ToolContext):
         event_type_id = os.getenv("CALCOM_EVENT_TYPE_ID", "")
         timezone = os.getenv("CALCOM_TIMEZONE", "Asia/Kolkata")
         if not api_key or not event_type_id:
-            return "Cal.com not configured -- skipping."
+            return "Cal.com not configured — skipping. Add CALCOM_API_KEY and CALCOM_EVENT_TYPE_ID."
         try:
             from datetime import datetime as _dt
             start_dt = _dt.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M")

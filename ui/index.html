@@ -1,780 +1,2649 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>OutboundAI — Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<style>
-:root {
-  --bg: #0d0d0d; --card: #161616; --border: #252525;
-  --accent: #00ff88; --accent2: #00ccff; --danger: #ff4d4d; --warn: #ffaa00;
-  --muted: #5a5a5a; --text: #e0e0e0; --text2: #aaa;
-  --mono: 'Courier New', monospace; --sans: 'Inter', 'Segoe UI', system-ui, sans-serif; --r: 8px;
-}
-body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; line-height: 1.5; font-size: 14px; margin: 0; padding: 0; display: flex; flex-direction: column; }
-header { background: var(--card); padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-h1 { margin: 0; font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; color: transparent; }
-nav { display: flex; gap: 1rem; padding: 1rem 2rem; background: var(--card); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-.tab-btn { background: none; border: 1px solid var(--border); color: var(--text2); padding: 0.5rem 1rem; border-radius: var(--r); cursor: pointer; transition: all 0.2s; }
-.tab-btn.active, .tab-btn:hover { background: var(--accent); color: #000; border-color: var(--accent); }
-main { padding: 2rem; flex: 1; }
-.panel { display: none; }
-.panel.active { display: block; animation: fadeIn 0.3s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 1.5rem; }
-.kpi { font-size: 2rem; font-weight: bold; color: var(--accent); }
-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
-th { color: var(--text2); font-weight: normal; }
-input, select, textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.75rem; border-radius: var(--r); margin-bottom: 1rem; font-family: var(--sans); }
-button.primary { background: var(--accent); color: #000; border: none; padding: 0.75rem 1.5rem; border-radius: var(--r); cursor: pointer; font-weight: bold; }
-button.primary:hover { opacity: 0.9; }
-button.danger { background: var(--danger); color: #fff; border: none; padding: 0.5rem 1rem; border-radius: var(--r); cursor: pointer; }
-.badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; background: var(--border); color: var(--text); }
-.badge.booked { background: #00ff8822; color: var(--accent); }
-#logs-container { background: var(--bg); font-family: var(--mono); font-size: 12px; padding: 1rem; border: 1px solid var(--border); border-radius: var(--r); height: 400px; overflow-y: auto; white-space: pre-wrap; }
-.toast {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  background: rgba(22, 22, 22, 0.85);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border);
-  padding: 0.8rem 1.2rem;
-  border-radius: var(--r);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  color: var(--text);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  opacity: 0;
-  transform: translateY(20px);
-  pointer-events: none;
-}
-.toast.show {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-.toast.success {
-  border-color: var(--accent);
-  background: rgba(0, 255, 136, 0.1);
-}
-.toast.success .highlight-num {
-  color: var(--accent);
-  font-weight: bold;
-}
-.toast.error {
-  border-color: var(--danger);
-  background: rgba(255, 77, 77, 0.1);
-}
-.toast.info {
-  border-color: var(--accent2);
-  background: rgba(0, 204, 255, 0.1);
-}
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-top-color: var(--accent2);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OutboundAI — Voice Dashboard</title>
+    <meta name="description" content="AI Outbound Calling Platform Dashboard with Gemini Realtime and LiveKit SIP Integration">
+    <!-- Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Modern Premium CSS System */
+        :root {
+            --bg-base: #05050a;
+            --bg-surface: #0c0c16;
+            --bg-card: #121222;
+            --border-color: #202036;
+            --border-hover: #323254;
+            --text-primary: #f5f6fa;
+            --text-secondary: #9094a6;
+            --accent-green: #00ff87;
+            --accent-blue: #00ccff;
+            --accent-purple: #8a2be2;
+            --accent-red: #ff3b69;
+            --accent-orange: #ff9f00;
+            --gradient-accent: linear-gradient(135deg, #00ff87 0%, #00ccff 100%);
+            --gradient-header: linear-gradient(135deg, #0f0c1b 0%, #05050a 100%);
+            --glow-green: 0 0 20px rgba(0, 255, 135, 0.2);
+            --glow-blue: 0 0 20px rgba(0, 204, 255, 0.2);
+            --font-family: 'Outfit', sans-serif;
+            --transition-speed: 0.25s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-base);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-hover);
+        }
+
+        /* Top Header Navigation Layout */
+        header {
+            background: var(--gradient-header);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.2rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .logo-section h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            background: rgba(0, 255, 135, 0.1);
+            border: 1px solid rgba(0, 255, 135, 0.2);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--accent-green);
+            text-transform: uppercase;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px var(--accent-green); }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        /* Nav Tabs Panel list styling */
+        nav.nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding: 0.5rem 2rem;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 73px;
+            z-index: 99;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: var(--font-family);
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.6rem 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab-btn.active {
+            color: #ffffff;
+            background: rgba(0, 204, 255, 0.15);
+            border: 1px solid rgba(0, 204, 255, 0.3);
+            box-shadow: var(--glow-blue);
+        }
+
+        /* Content Container Layout */
+        main {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .tab-panel {
+            display: none;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Visual Card Grid & Components */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: border var(--transition-speed) ease;
+        }
+
+        .card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.8rem;
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        /* Grid Frameworks */
+        .grid-kpi {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: linear-gradient(145deg, #101020 0%, #151528 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: all var(--transition-speed) ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent-blue);
+            box-shadow: var(--glow-blue);
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .kpi-icon {
+            align-self: flex-end;
+            margin-top: -2.5rem;
+            color: var(--accent-blue);
+            opacity: 0.7;
+        }
+
+        /* Chart container */
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-card {
+            min-height: 320px;
+        }
+
+        /* Badges & Indicators */
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            text-transform: uppercase;
+        }
+
+        .badge-green { background: rgba(0, 255, 135, 0.12); border: 1px solid rgba(0, 255, 135, 0.3); color: var(--accent-green); }
+        .badge-blue { background: rgba(0, 204, 255, 0.12); border: 1px solid rgba(0, 204, 255, 0.3); color: var(--accent-blue); }
+        .badge-red { background: rgba(255, 59, 105, 0.12); border: 1px solid rgba(255, 59, 105, 0.3); color: var(--accent-red); }
+        .badge-orange { background: rgba(255, 159, 0, 0.12); border: 1px solid rgba(255, 159, 0, 0.3); color: var(--accent-orange); }
+
+        /* Forms Layout & Inputs */
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        input[type="text"], input[type="number"], input[type="email"], select, textarea {
+            width: 100%;
+            background-color: #0c0c16;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            font-family: var(--font-family);
+            font-size: 0.95rem;
+            transition: all var(--transition-speed) ease;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 10px rgba(0, 204, 255, 0.15);
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 1rem;
+        }
+
+        .checkbox-container input {
+            cursor: pointer;
+            accent-color: var(--accent-blue);
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Buttons styles */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-family: var(--font-family);
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.75rem 1.4rem;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            transition: all var(--transition-speed) ease;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--gradient-accent);
+            color: #05050a;
+            box-shadow: 0 4px 15px rgba(0, 255, 135, 0.2);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.95;
+            box-shadow: 0 4px 25px rgba(0, 255, 135, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--border-hover);
+        }
+
+        .btn-danger {
+            background: rgba(255, 59, 105, 0.15);
+            border: 1px solid rgba(255, 59, 105, 0.3);
+            color: var(--accent-red);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 59, 105, 0.25);
+            box-shadow: 0 4px 15px rgba(255, 59, 105, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Flex & Alignment Utility classes */
+        .flex-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Tables & Lists Layout */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--bg-surface);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            padding: 0.9rem 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.92rem;
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.01);
+        }
+
+        /* Progress Bar */
+        .progress-bar-container {
+            background: #0d0d16;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            height: 18px;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            margin: 1rem 0;
+        }
+
+        .progress-bar-fill {
+            background: var(--gradient-accent);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Live config chips list */
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+
+        .chip {
+            background-color: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .chip span {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* CRM Details Drilldown overlay */
+        .drilldown-container {
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            border-radius: 10px;
+            padding: 1.2rem;
+            margin-top: 1rem;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .drilldown-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        /* Log console styling */
+        .console {
+            background-color: #030307;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            height: 380px;
+            overflow-y: auto;
+            color: #a4adc0;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .log-entry {
+            display: flex;
+            gap: 0.8rem;
+            border-bottom: 1px solid #10101f;
+            padding-bottom: 0.25rem;
+        }
+
+        .log-time { color: #5f748d; font-size: 0.8rem; }
+        .log-source { color: var(--accent-blue); font-weight: bold; }
+        .log-msg { color: #f3f4f6; }
+        .log-detail { font-size: 0.78rem; color: #737c8e; padding-left: 1rem; }
+
+        .log-level-error .log-msg { color: var(--accent-red); }
+        .log-level-warning .log-msg { color: var(--accent-orange); }
+
+        /* Setup Guides */
+        .guide-step {
+            margin-bottom: 1.5rem;
+            padding-left: 1.5rem;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .guide-step h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent-blue);
+        }
+
+        .guide-step p, .guide-step li {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            margin-bottom: 0.25rem;
+        }
+
+        .cost-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed var(--border-color);
+            padding: 0.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        /* Audio player wrapper */
+        .audio-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        audio {
+            height: 30px;
+            width: 180px;
+        }
+    </style>
 </head>
 <body>
 
-<header>
-  <h1>OutboundAI</h1>
-  <div id="live-config-chips"></div>
-</header>
-
-<nav>
-  <button class="tab-btn active" onclick="switchTab('stats')">📊 Stats</button>
-  <button class="tab-btn" onclick="switchTab('single')">📞 Single Call</button>
-  <button class="tab-btn" onclick="switchTab('batch')">📋 Batch Call</button>
-  <button class="tab-btn" onclick="switchTab('campaigns')">🚀 Campaigns</button>
-  <button class="tab-btn" onclick="switchTab('agents')">🤖 Agents</button>
-  <button class="tab-btn" onclick="switchTab('prompt')">✏️ AI Prompt</button>
-  <button class="tab-btn" onclick="switchTab('appointments')">📅 Appointments</button>
-  <button class="tab-btn" onclick="switchTab('logs')">📝 Call Logs</button>
-  <button class="tab-btn" onclick="switchTab('crm')">👥 CRM</button>
-  <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
-  <button class="tab-btn" onclick="switchTab('syslogs')">📋 Logs</button>
-  <button class="tab-btn" onclick="switchTab('setup')">🔧 Setup</button>
-  <button class="tab-btn" onclick="window.location.href='/logout'" style="margin-left: auto; border-color: var(--danger); color: var(--danger);">🚪 Logout</button>
-</nav>
-
-<main>
-  <!-- STATS -->
-  <div id="stats" class="panel active">
-    <div class="grid" id="kpi-grid"></div>
-    <div class="grid">
-      <div class="card"><canvas id="chart-outcomes"></canvas></div>
-      <div class="card"><canvas id="chart-timeline"></canvas></div>
-      <div class="card"><canvas id="chart-duration"></canvas></div>
-    </div>
-  </div>
-
-  <!-- SINGLE CALL -->
-  <div id="single" class="panel">
-    <div class="card" style="max-width: 500px; margin: 0 auto;">
-      <h2>Make a Call</h2>
-      <input type="text" id="sc-phone" placeholder="Phone (+919876543210)">
-      <input type="text" id="sc-lead" placeholder="Lead Name">
-      <input type="text" id="sc-biz" placeholder="Business Name">
-      <input type="text" id="sc-svc" placeholder="Service Type">
-      <select id="sc-profile"><option value="">Default Profile</option></select>
-      <label><input type="checkbox" id="sc-custom-cb" onchange="$('sc-custom-box').style.display=this.checked?'block':'none'"> Custom Prompt</label>
-      <textarea id="sc-custom-box" style="display:none" rows="5" placeholder="Override system prompt..."></textarea>
-      <button class="primary" onclick="dispatchCall()">Dispatch Call</button>
-    </div>
-  </div>
-
-  <!-- BATCH CALL -->
-  <div id="batch" class="panel">
-    <div class="card">
-      <h2>Batch Call CSV</h2>
-      <select id="bc-profile"><option value="">Default Profile</option></select>
-      <input type="file" id="bc-csv" accept=".csv">
-      <input type="number" id="bc-delay" placeholder="Delay between calls (seconds)" value="3">
-      <button class="primary" onclick="startBatch()">Start Batch (Create Campaign)</button>
-    </div>
-  </div>
-
-  <!-- CAMPAIGNS -->
-  <div id="campaigns" class="panel">
-    <div class="card">
-      <h2>Create Campaign</h2>
-      <input type="text" id="camp-name" placeholder="Campaign Name">
-      <select id="camp-sched">
-        <option value="once">Run Once (Now)</option>
-        <option value="daily">Daily</option>
-        <option value="weekdays">Weekdays (Mon-Fri)</option>
-      </select>
-      <input type="time" id="camp-time" value="09:00">
-      <select id="camp-profile"><option value="">Default Profile</option></select>
-      <input type="file" id="camp-csv" accept=".csv">
-      <button class="primary" onclick="createCampaign()">Save Campaign</button>
-    </div>
-    <div class="card" style="margin-top: 1rem;">
-      <table>
-        <thead><tr><th>Name</th><th>Schedule</th><th>Status</th><th>Stats</th><th>Actions</th></tr></thead>
-        <tbody id="camp-table"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- AGENTS -->
-  <div id="agents" class="panel">
-    <div class="grid">
-      <div class="card">
-        <h2>Create / Edit Profile</h2>
-        <input type="text" id="ag-name" placeholder="Profile Name">
-        <select id="ag-voice">
-            <optgroup label="Female voices">
-                <option value="Aoede">Aoede — warm, expressive ⭐</option>
-                <option value="Kore">Kore — soft, calm</option>
-                <option value="Leda">Leda — clear female</option>
-            </optgroup>
-            <optgroup label="Male voices">
-                <option value="Charon">Charon — calm, deep</option>
-                <option value="Fenrir">Fenrir — confident male</option>
-            </optgroup>
-        </select>
-        <select id="ag-model">
-            <option value="gemini-3.1-flash-live-preview">gemini-3.1-flash-live-preview</option>
-            <option value="gemini-2.5-flash-native-audio-preview-12-2025">gemini-2.5-flash-native-audio-preview-12-2025</option>
-        </select>
-        <input type="text" id="ag-tools" placeholder='["book_appointment", "end_call"]' value="[]">
-        <textarea id="ag-prompt" rows="5" placeholder="System prompt..."></textarea>
-        <label><input type="checkbox" id="ag-default"> Set as Default</label>
-        <button class="primary" onclick="saveAgentProfile()">Save Profile</button>
-      </div>
-      <div class="card">
-        <h2>Profiles</h2>
-        <table>
-          <thead><tr><th>Name</th><th>Voice</th><th>Model</th><th>Actions</th></tr></thead>
-          <tbody id="ag-table"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- PROMPT -->
-  <div id="prompt" class="panel">
-    <div class="card">
-      <h2>Global System Prompt</h2>
-      <textarea id="global-prompt" rows="20"></textarea>
-      <button class="primary" onclick="savePrompt()">Save Prompt</button>
-      <button class="danger" onclick="resetPrompt()">Reset to Default</button>
-    </div>
-  </div>
-
-  <!-- APPOINTMENTS -->
-  <div id="appointments" class="panel">
-    <div class="card">
-      <h2>Appointments</h2>
-      <input type="date" id="apt-date" onchange="loadAppointments()">
-      <table>
-        <thead><tr><th>Date</th><th>Time</th><th>Name</th><th>Phone</th><th>Service</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody id="apt-table"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- CALL LOGS -->
-  <div id="logs" class="panel">
-    <div class="card">
-      <h2>Call Logs</h2>
-      <table>
-        <thead><tr><th>Time</th><th>Phone</th><th>Lead</th><th>Outcome</th><th>Duration</th><th>Recording</th></tr></thead>
-        <tbody id="logs-table"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- CRM -->
-  <div id="crm" class="panel">
-    <div class="card">
-      <h2>CRM Contacts</h2>
-      <table>
-        <thead><tr><th>Phone</th><th>Lead</th><th>Calls</th><th>Bookings</th><th>Last Call</th></tr></thead>
-        <tbody id="crm-table"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- SETTINGS -->
-  <div id="settings" class="panel">
-    <div class="card">
-      <h2>Configuration</h2>
-      
-      <!-- Emergency Controls -->
-      <div style="background: rgba(255,59,48,0.1); border: 1px solid #ff3b30; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-        <h3 style="color: #ff3b30; margin-top: 0; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-          ⚠️ Emergency Kill Switch
-        </h3>
-        <p style="font-size: 13px; color: var(--text2); margin-top: 0; margin-bottom: 1rem;">
-          Activating this instantly suspends all outbound call dispatches and campaign executions to protect against unauthorized usage and API billing drain.
-        </p>
-        <div style="display: flex; align-items: center; gap: 1rem;">
-          <select id="set-emergency-stop" style="margin-bottom: 0; width: auto; min-width: 200px; background: rgba(0,0,0,0.2); border: 1px solid #ff3b30; border-radius: 4px; color: #ff3b30; padding: 0.5rem; outline: none; cursor: pointer;">
-            <option value="false" style="color: var(--text); background: #111;">Inactive (Calls Allowed)</option>
-            <option value="true" style="color: #ff3b30; background: #111;">Active (Block All Calls)</option>
-          </select>
+    <header>
+        <div class="logo-section">
+            <i data-lucide="phone-call" style="color: var(--accent-green)"></i>
+            <h1>OutboundAI</h1>
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                <span>Active</span>
+            </div>
         </div>
-      </div>
-
-      <h3>LiveKit</h3>
-      <input type="text" id="set-lk-url" placeholder="LIVEKIT_URL">
-      <input type="password" id="set-lk-key" placeholder="LIVEKIT_API_KEY">
-      <input type="password" id="set-lk-sec" placeholder="LIVEKIT_API_SECRET">
-      <h3>Vobiz SIP</h3>
-      <input type="text" id="set-vb-dom" placeholder="VOBIZ_SIP_DOMAIN">
-      <input type="text" id="set-vb-usr" placeholder="VOBIZ_USERNAME">
-      <input type="password" id="set-vb-pw" placeholder="VOBIZ_PASSWORD">
-      <input type="text" id="set-vb-num" placeholder="VOBIZ_OUTBOUND_NUMBER">
-      
-      <h3>Safety & Rate Limits</h3>
-      <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
-        <div style="flex: 1; min-width: 200px;">
-          <label style="font-size: 12px; color: var(--text2); display: block; margin-bottom: 0.25rem;">Max Calls Per Minute</label>
-          <input type="number" id="set-max-minute" placeholder="e.g. 15" style="margin-bottom: 0;">
+        <div class="chips-container" style="margin-bottom: 0">
+            <div class="chip" id="chip-livekit-url"><i data-lucide="network" style="width:14px"></i>LK: <span class="val">Connecting...</span></div>
+            <div class="chip" id="chip-sip-trunk"><i data-lucide="phone-outgoing" style="width:14px"></i>Trunk: <span class="val">Loading...</span></div>
         </div>
-        <div style="flex: 1; min-width: 200px;">
-          <label style="font-size: 12px; color: var(--text2); display: block; margin-bottom: 0.25rem;">Max Calls Per 24 Hours (Daily Cap)</label>
-          <input type="number" id="set-max-daily" placeholder="e.g. 500" style="margin-bottom: 0;">
-        </div>
-      </div>
+    </header>
 
-      <button class="primary" onclick="createSIPTrunk()">⚡ Create SIP Trunk</button>
-      <br><br>
-      <button class="primary" onclick="saveSettings()">Save All Settings</button>
-    </div>
+    <!-- Top Navigation Tabs -->
+    <nav class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('stats')"><i data-lucide="bar-chart-3"></i>Stats</button>
+        <button class="tab-btn" onclick="switchTab('single-call')"><i data-lucide="phone"></i>Single Call</button>
+        <button class="tab-btn" onclick="switchTab('batch-call')"><i data-lucide="users"></i>Batch Call</button>
+        <button class="tab-btn" onclick="switchTab('campaigns')"><i data-lucide="rocket"></i>Campaigns</button>
+        <button class="tab-btn" onclick="switchTab('agents')"><i data-lucide="bot"></i>Agents</button>
+        <button class="tab-btn" onclick="switchTab('prompt')"><i data-lucide="file-edit"></i>AI Prompt</button>
+        <button class="tab-btn" onclick="switchTab('appointments')"><i data-lucide="calendar"></i>Appointments</button>
+        <button class="tab-btn" onclick="switchTab('call-logs')"><i data-lucide="clipboard-list"></i>Call Logs</button>
+        <button class="tab-btn" onclick="switchTab('crm')"><i data-lucide="user-check"></i>CRM</button>
+        <button class="tab-btn" onclick="switchTab('settings')"><i data-lucide="settings"></i>Settings</button>
+        <button class="tab-btn" onclick="switchTab('logs')"><i data-lucide="terminal"></i>Logs</button>
+        <button class="tab-btn" onclick="switchTab('setup')"><i data-lucide="help-circle"></i>Setup</button>
+    </nav>
 
-    <div class="card" style="margin-top: 1.5rem;">
-      <h2>User Management</h2>
-      <h3>Add New User Account</h3>
-      <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: flex-end;">
-        <div style="flex: 2; min-width: 150px;">
-          <label style="display:block; margin-bottom: 0.25rem; font-size: 12px; color: var(--text2);">Email Address</label>
-          <input type="email" id="new-user-email" placeholder="email@domain.com" style="margin-bottom: 0;">
-        </div>
-        <div style="flex: 2; min-width: 150px;">
-          <label style="display:block; margin-bottom: 0.25rem; font-size: 12px; color: var(--text2);">Password (min 6 chars)</label>
-          <input type="password" id="new-user-password" placeholder="Password" style="margin-bottom: 0;">
-        </div>
-        <div style="flex: 1; min-width: 120px;">
-          <label style="display:block; margin-bottom: 0.25rem; font-size: 12px; color: var(--text2);">Role</label>
-          <select id="new-user-role" style="margin-bottom: 0; padding: 0.7rem; width: 100%; height: 42px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 4px; color: var(--text);">
-            <option value="user">Normal User</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <div style="flex: 1; min-width: 100px;">
-          <button class="primary" onclick="addNewUser()" style="width: 100%; height: 42px; margin-top: 0; padding: 0; cursor: pointer;">Add User</button>
-        </div>
-      </div>
-      
-      <h3>Authorized Users</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Email Address</th>
-            <th>Role</th>
-            <th style="text-align: right; width: 100px;">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="users-table-body">
-          <!-- Populated dynamically -->
-        </tbody>
-      </table>
-    </div>
-  </div>
+    <main>
+        <!-- 📊 STATS PANEL -->
+        <section id="panel-stats" class="tab-panel active">
+            <div class="grid-kpi">
+                <div class="kpi-card">
+                    <span class="kpi-title">Total Calls</span>
+                    <span class="kpi-value" id="kpi-total-calls">0</span>
+                    <i data-lucide="phone-call" class="kpi-icon"></i>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-title">Booked Appointments</span>
+                    <span class="kpi-value" id="kpi-booked">0</span>
+                    <i data-lucide="calendar-check-2" class="kpi-icon" style="color: var(--accent-green)"></i>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-title">Booking Success Rate</span>
+                    <span class="kpi-value" id="kpi-rate">0%</span>
+                    <i data-lucide="sparkles" class="kpi-icon" style="color: var(--accent-purple)"></i>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-title">Avg Call Duration</span>
+                    <span class="kpi-value" id="kpi-duration">0s</span>
+                    <i data-lucide="clock" class="kpi-icon" style="color: var(--accent-orange)"></i>
+                </div>
+            </div>
 
-  <!-- SYSLOGS -->
-  <div id="syslogs" class="panel">
-    <div class="card">
-      <h2>System Logs</h2>
-      <button onclick="loadSysLogs()">Refresh</button>
-      <button class="danger" onclick="apiDel('/api/logs').then(loadSysLogs)">Clear</button>
-      <div id="logs-container" style="margin-top:1rem;"></div>
-    </div>
-  </div>
+            <div class="charts-container">
+                <div class="card chart-card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="pie-chart"></i>Call Outcomes</h2></div>
+                    <canvas id="chart-outcomes"></canvas>
+                </div>
+                <div class="card chart-card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="trending-up"></i>Call Timeline (14 Days)</h2></div>
+                    <canvas id="chart-timeline"></canvas>
+                </div>
+                <div class="card chart-card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="hourglass"></i>Avg Duration by Outcome</h2></div>
+                    <canvas id="chart-duration"></canvas>
+                </div>
+            </div>
+        </section>
 
-  <!-- SETUP -->
-  <div id="setup" class="panel">
-    <div class="card">
-      <h2>Setup Guide</h2>
-      <p>1. Go to Settings and configure LiveKit and Vobiz.</p>
-      <p>2. Click 'Create SIP Trunk'.</p>
-      <p>3. Create an Agent Profile.</p>
-      <p>4. Go to Single Call and test.</p>
-    </div>
-  </div>
+        <!-- 📞 SINGLE CALL PANEL -->
+        <section id="panel-single-call" class="tab-panel">
+            <div class="grid-2col">
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="phone-outgoing"></i>Dispatch Test Call</h2></div>
+                    <form id="form-single-call" onsubmit="dispatchSingleCall(event)">
+                        <div class="form-group">
+                            <label for="sc-phone">Destination Phone Number</label>
+                            <input type="text" id="sc-phone" placeholder="+919876543210 (Leave blank to use TEST_DESTINATION_NUMBER)">
+                        </div>
+                        <div class="form-group">
+                            <label for="sc-lead-name">Lead Name</label>
+                            <input type="text" id="sc-lead-name" value="Amit Sharma">
+                        </div>
+                        <div class="form-group">
+                            <label for="sc-biz-name">Business Name</label>
+                            <input type="text" id="sc-biz-name" value="DentalCare Clinic">
+                        </div>
+                        <div class="form-group">
+                            <label for="sc-service-type">Service Type</label>
+                            <input type="text" id="sc-service-type" value="Dental Checkup">
+                        </div>
+                        <div class="form-group">
+                            <label for="sc-profile">Agent Profile Override (Optional)</label>
+                            <select id="sc-profile">
+                                <option value="">Use Default Settings</option>
+                            </select>
+                        </div>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="sc-toggle-prompt" onchange="toggleCustomPromptArea()">
+                            <span>Override system prompt for this call</span>
+                        </label>
+                        <div class="form-group" id="sc-prompt-container" style="display:none">
+                            <label for="sc-custom-prompt">Custom Prompt</label>
+                            <textarea id="sc-custom-prompt" rows="5" placeholder="Specify instructions for Priya..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="btn-sc-dispatch" style="width: 100%">
+                            <i data-lucide="phone-outgoing"></i> Call Lead Now
+                        </button>
+                    </form>
+                </div>
 
-</main>
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="activity"></i>Active Session Monitor</h2></div>
+                    <div style="display:flex; flex-direction:column; gap:1rem; height: 100%; justify-content: center; min-height: 250px; text-align: center;" id="session-monitor-empty">
+                        <i data-lucide="phone-off" style="width:48px; height:48px; margin:0 auto; opacity:0.5; color: var(--text-secondary)"></i>
+                        <p style="color: var(--text-secondary)">No active call is running right now. Place a test call to see live status updates.</p>
+                    </div>
+                    <div id="session-monitor-active" style="display:none">
+                        <div class="flex-row" style="justify-content: space-between; margin-bottom: 1.5rem">
+                            <div class="flex-row">
+                                <i data-lucide="phone-incoming" style="color: var(--accent-green)"></i>
+                                <div>
+                                    <h3 id="monitor-phone">+1XXXXXXXXXX</h3>
+                                    <p id="monitor-lead" style="font-size:0.85rem; color:var(--text-secondary)">Lead: Amit Sharma</p>
+                                </div>
+                            </div>
+                            <span class="badge badge-green" id="monitor-status">Dialing...</span>
+                        </div>
+                        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; margin-bottom: 1rem">
+                            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom: 0.5rem">Current Room Identifier</p>
+                            <code id="monitor-room" style="color:var(--accent-blue)">call-room-xyz</code>
+                        </div>
+                        <button class="btn btn-danger" onclick="window.location.reload()" style="width: 100%">
+                            <i data-lucide="phone-off"></i> Force Stop Session
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-<div id="toast" class="toast"></div>
+        <!-- 📋 BATCH CALL PANEL -->
+        <section id="panel-batch-call" class="tab-panel">
+            <div class="card">
+                <div class="card-header"><h2 class="card-title"><i data-lucide="users"></i>Batch Calling Queue</h2></div>
+                <div class="grid-2col">
+                    <div>
+                        <div class="form-group">
+                            <label for="bc-profile">Agent Profile</label>
+                            <select id="bc-profile">
+                                <option value="">Use Default Profile</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="bc-delay">Call Dispatch Interval (Seconds)</label>
+                            <input type="number" id="bc-delay" value="5" min="3" max="60">
+                        </div>
+                        <div class="form-group">
+                            <label for="bc-csv">Upload Leads CSV</label>
+                            <input type="file" id="bc-csv" accept=".csv" onchange="parseBatchCSV(this)">
+                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem">
+                                Headers required: <code>phone</code>, <code>lead_name</code> (optional), <code>business_name</code> (optional), <code>service_type</code> (optional)
+                            </p>
+                        </div>
+                        <div id="batch-stats-summary" style="display:none; margin-bottom: 1rem">
+                            <span class="badge badge-blue">Leads Parsed: <span id="parsed-count">0</span></span>
+                        </div>
+                        <button class="btn btn-primary" id="btn-start-batch" disabled onclick="executeBatchCall()">
+                            <i data-lucide="play"></i> Start Batch Calling Campaign
+                        </button>
+                    </div>
 
-<script>
-const $ = id => document.getElementById(id);
+                    <div>
+                        <h3 style="font-size:0.95rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.5rem">Parsed Leads Preview</h3>
+                        <div style="border:1px solid var(--border-color); border-radius:8px; height:200px; overflow-y:auto; background:#0c0c16">
+                            <table id="table-batch-preview">
+                                <thead>
+                                    <tr>
+                                        <th>Phone</th>
+                                        <th>Name</th>
+                                        <th>Service</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="3" style="text-align:center; color:var(--text-secondary)">No CSV uploaded yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
-const handleResponse = async (r) => {
-    if (r.status === 401) {
-        window.location.href = '/login';
-        throw new Error('Unauthorized');
-    }
-    if (!r.ok) {
-        const err = await r.json().catch(() => ({detail: r.statusText}));
-        throw new Error(err.detail || 'API Error');
-    }
-    return r.json();
-};
+                <!-- Batch Progress -->
+                <div id="batch-progress-container" style="display:none; margin-top: 2rem">
+                    <div class="card-header"><h3 class="card-title">Campaign Dispatch Status</h3></div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="batch-progress-fill"></div>
+                        <div class="progress-text" id="batch-progress-text">0 / 0 Leads</div>
+                    </div>
+                    <div class="flex-row" style="justify-content: space-between">
+                        <span style="color:var(--text-secondary); font-size:0.85rem">Queue Status: <strong id="batch-status-text" style="color:var(--accent-blue)">Idle</strong></span>
+                        <span style="color:var(--text-secondary); font-size:0.85rem">Successful Dispatches: <strong id="batch-success-count" style="color:var(--accent-green)">0</strong> | Failed: <strong id="batch-failed-count" style="color:var(--accent-red)">0</strong></span>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-const api = (path, opts) => fetch(path, opts).then(handleResponse);
-const apiPost = (path, body) => fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}).then(handleResponse);
-const apiDel  = path => fetch(path, {method:'DELETE'}).then(handleResponse);
-const apiPatch = (path, body) => fetch(path, {method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}).then(handleResponse);
+        <!-- 🚀 CAMPAIGNS PANEL -->
+        <section id="panel-campaigns" class="tab-panel">
+            <div class="grid-2col">
+                <!-- Create Campaign -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="plus-circle"></i>Configure Auto-Campaign</h2></div>
+                    <form id="form-campaign" onsubmit="createCampaign(event)">
+                        <div class="form-group">
+                            <label for="camp-name">Campaign Name</label>
+                            <input type="text" id="camp-name" placeholder="e.g. Wednesday Reactivation Plan" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="camp-profile">Agent Profile</label>
+                            <select id="camp-profile">
+                                <option value="">Use Default Profile</option>
+                            </select>
+                        </div>
+                        <div class="grid-2col">
+                            <div class="form-group">
+                                <label for="camp-schedule-type">Schedule Trigger</label>
+                                <select id="camp-schedule-type" onchange="toggleCampaignTime()">
+                                    <option value="once">Run Instantly (Once)</option>
+                                    <option value="daily">Daily Cron Trigger</option>
+                                    <option value="weekdays">Weekdays Cron Trigger</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="camp-time-container" style="display:none">
+                                <label for="camp-time">Dispatch Time (24h)</label>
+                                <input type="text" id="camp-time" value="09:00" placeholder="HH:MM">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="camp-delay">Call Interval Delay (Seconds)</label>
+                            <input type="number" id="camp-delay" value="5" min="3" max="60">
+                        </div>
+                        <div class="form-group">
+                            <label for="camp-csv">Upload Targets CSV</label>
+                            <input type="file" id="camp-csv" accept=".csv" required onchange="parseCampaignCSV(this)">
+                        </div>
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="camp-toggle-prompt" onchange="toggleCampaignPromptArea()">
+                            <span>Override custom instructions for this campaign</span>
+                        </label>
+                        <div class="form-group" id="camp-prompt-container" style="display:none">
+                            <label for="camp-custom-prompt">Campaign System Prompt Override</label>
+                            <textarea id="camp-custom-prompt" rows="4" placeholder="e.g. Pitch the discount offer..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%">
+                            <i data-lucide="plus"></i> Save & Queue Campaign
+                        </button>
+                    </form>
+                </div>
 
-let toastTimeout;
-function toast(msg, type = 'info', duration = 3000) {
-    if (toastTimeout) clearTimeout(toastTimeout);
-    
-    const t = $('toast');
-    t.className = `toast show ${type === 'progress' ? 'info' : type}`;
-    
-    let content = '';
-    if (type === 'progress') {
-        content = `<div class="spinner"></div> <span>${msg}</span>`;
-    } else if (type === 'success') {
-        const phoneRegex = /(\+\d{1,4}\d{6,14}|\b\d{10}\b)/g;
-        const formattedMsg = msg.replace(phoneRegex, `<span class="highlight-num">$1</span>`);
-        content = `<span>✅ ${formattedMsg}</span>`;
-    } else if (type === 'error') {
-        content = `<span>❌ ${msg}</span>`;
-    } else {
-        content = `<span>ℹ️ ${msg}</span>`;
-    }
-    
-    t.innerHTML = content;
-    
-    if (duration > 0) {
-        toastTimeout = setTimeout(() => {
-            t.classList.remove('show');
-        }, duration);
-    }
-}
+                <!-- Campaigns Table -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="list"></i>Active Campaign Lists</h2></div>
+                    <div class="table-responsive">
+                        <table id="table-campaigns">
+                            <thead>
+                                <tr>
+                                    <th>Campaign Name</th>
+                                    <th>Trigger</th>
+                                    <th>Dispatched</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" style="text-align:center; color:var(--text-secondary)">No campaigns scheduled</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-function switchTab(id) {
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    $(id).classList.add('active');
-    event.currentTarget.classList.add('active');
-    if(id === 'stats') loadStats();
-    if(id === 'logs') loadCalls();
-    if(id === 'appointments') loadAppointments();
-    if(id === 'campaigns') loadCampaigns();
-    if(id === 'agents') loadAgentProfiles();
-    if(id === 'crm') loadCRM();
-    if(id === 'settings') { loadSettings(); loadUsers(); }
-    if(id === 'prompt') loadPrompt();
-    if(id === 'syslogs') loadSysLogs();
-}
+        <!-- 🤖 AGENTS PANEL -->
+        <section id="panel-agents" class="tab-panel">
+            <div class="grid-2col">
+                <!-- Create/Edit Agent Profile -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title" id="agent-form-title"><i data-lucide="bot"></i>Create Voice Agent Profile</h2></div>
+                    <form id="form-agent" onsubmit="saveAgentProfile(event)">
+                        <input type="hidden" id="agent-id">
+                        <div class="form-group">
+                            <label for="agent-name">Agent Name</label>
+                            <input type="text" id="agent-name" placeholder="Priya - English/Hindi Booking" required>
+                        </div>
+                        <div class="grid-2col">
+                            <div class="form-group">
+                                <label for="agent-voice">Select TTS Voice</label>
+                                <select id="agent-voice">
+                                    <optgroup label="Female voices">
+                                        <option value="Aoede">Aoede — warm, expressive ⭐</option>
+                                        <option value="Achernar">Achernar — soft & clear</option>
+                                        <option value="Autonoe">Autonoe — natural female</option>
+                                        <option value="Callirrhoe">Callirrhoe — gentle female</option>
+                                        <option value="Despina">Despina — bright female</option>
+                                        <option value="Erinome">Erinome — smooth female</option>
+                                        <option value="Gacrux">Gacrux — rich female</option>
+                                        <option value="Kore">Kore — soft, calm</option>
+                                        <option value="Laomedeia">Laomedeia — light female</option>
+                                        <option value="Leda">Leda — clear female</option>
+                                        <option value="Pulcherrima">Pulcherrima — warm female</option>
+                                        <option value="Sulafat">Sulafat — smooth female</option>
+                                        <option value="Vindemiatrix">Vindemiatrix — professional female</option>
+                                        <option value="Zephyr">Zephyr — airy female</option>
+                                    </optgroup>
+                                    <optgroup label="Male voices">
+                                        <option value="Achird">Achird — clear male</option>
+                                        <option value="Algenib">Algenib — strong male</option>
+                                        <option value="Algieba">Algieba — rich male</option>
+                                        <option value="Alnilam">Alnilam — deep male</option>
+                                        <option value="Charon">Charon — calm, deep</option>
+                                        <option value="Enceladus">Enceladus — expressive male</option>
+                                        <option value="Fenrir">Fenrir — confident male</option>
+                                        <option value="Iapetus">Iapetus — steady male</option>
+                                        <option value="Orus">Orus — warm male</option>
+                                        <option value="Perseus">Perseus — clear male</option>
+                                        <option value="Puck">Puck — bright, energetic</option>
+                                        <option value="Rasalgethi">Rasalgethi — bold male</option>
+                                        <option value="Sadachbia">Sadachbia — natural male</option>
+                                        <option value="Sadaltager">Sadaltager — smooth male</option>
+                                        <option value="Schedar">Schedar — professional male</option>
+                                        <option value="Umbriel">Umbriel — deep, calm</option>
+                                        <option value="Zubenelgenubi">Zubenelgenubi — resonant male</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="agent-model">Gemini Core Model</label>
+                                <select id="agent-model">
+                                    <option value="gemini-3.1-flash-live-preview">gemini-3.1-flash-live-preview</option>
+                                    <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                                    <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp</option>
+                                </select>
+                            </div>
+                        </div>
 
-let charts = {};
-function renderChart(id, type, data, options) {
-    if(charts[id]) charts[id].destroy();
-    charts[id] = new Chart($(id), {type, data, options});
-}
+                        <!-- System Prompt -->
+                        <div class="form-group">
+                            <label for="agent-prompt">Agent System Prompt (Overrides Global System Prompt)</label>
+                            <textarea id="agent-prompt" rows="8" placeholder="Specify Priya's behavior structure..."></textarea>
+                        </div>
 
-async function loadStats() {
-    const d = await api('/api/stats');
-    $('kpi-grid').innerHTML = `
-        <div class="card"><div>Total Calls</div><div class="kpi">${d.total_calls}</div></div>
-        <div class="card"><div>Booked</div><div class="kpi">${d.booked}</div></div>
-        <div class="card"><div>Booking Rate</div><div class="kpi">${d.booking_rate_percent}%</div></div>
-        <div class="card"><div>Avg Duration</div><div class="kpi">${d.avg_duration_seconds}s</div></div>
-    `;
-    
-    renderChart('chart-outcomes', 'doughnut', {
-        labels: Object.keys(d.outcomes),
-        datasets: [{data: Object.values(d.outcomes), backgroundColor: ['#00ff88', '#ff4d4d', '#ffaa00', '#5a5a5a']}]
-    }, {plugins:{title:{display:true, text:'Outcomes'}}});
+                        <!-- Tool Toggles -->
+                        <div class="form-group">
+                            <label style="margin-bottom: 0.5rem; display:block">Authorized Tool Context Modules</label>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; background:#0c0c16; padding:0.8rem; border-radius:8px; border:1px solid var(--border-color)" id="agent-tools-container">
+                                <label class="checkbox-container"><input type="checkbox" value="check_availability" checked><span>check_availability</span></label>
+                                <label class="checkbox-container"><input type="checkbox" value="book_appointment" checked><span>book_appointment</span></label>
+                                <label class="checkbox-container"><input type="checkbox" value="end_call" checked><span>end_call</span></label>
+                                <label class="checkbox-container"><input type="checkbox" value="transfer_to_human" checked><span>transfer_to_human</span></label>
+                                <label class="checkbox-container"><input type="checkbox" value="send_sms_confirmation" checked><span>send_sms</span></label>
+                                <label class="checkbox-container"><input type="checkbox" value="lookup_contact" checked><span>lookup_contact</span></label>
+                                <label class="checkbox-container"><input type="checkbox" value="remember_details" checked><span>remember_details</span></label>
+                                <label class="checkbox-container"><input type="checkbox" value="book_calcom"><span>book_calcom</span></label>
+                                <label class="checkbox-container"><input type="checkbox" value="cancel_calcom"><span>cancel_calcom</span></label>
+                            </div>
+                        </div>
 
-    renderChart('chart-timeline', 'line', {
-        labels: d.timeline.map(x=>x.date),
-        datasets: [{label:'Calls', data: d.timeline.map(x=>x.count), borderColor: '#00ccff', tension:0.4}]
-    }, {plugins:{title:{display:true, text:'14-Day Timeline'}}});
-}
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="agent-default">
+                            <span>Set this agent profile as the global system default</span>
+                        </label>
 
-async function dispatchCall() {
-    const phone = $('sc-phone').value.trim();
-    if(!phone) return toast('Please enter a phone number', 'error');
-    
-    const req = {
-        phone: phone,
-        lead_name: $('sc-lead').value || 'there',
-        business_name: $('sc-biz').value || 'our company',
-        service_type: $('sc-svc').value || 'our service',
-        agent_profile_id: $('sc-profile').value || null,
-        system_prompt: $('sc-custom-cb').checked ? $('sc-custom-box').value : null
-    };
-    
-    toast('Dispatching call to ' + phone + '...', 'progress', 0);
-    try {
-        await apiPost('/api/call', req);
-        toast('Call dispatched to ' + phone, 'success');
-    } catch(e) { 
-        toast(e.message || 'Error dispatching call', 'error'); 
-    }
-}
+                        <div class="flex-row">
+                            <button type="submit" class="btn btn-primary" style="flex:1"><i data-lucide="check"></i> Save Agent Profile</button>
+                            <button type="button" class="btn btn-secondary" onclick="resetAgentForm()"><i data-lucide="rotate-ccw"></i> Reset</button>
+                        </div>
+                    </form>
+                </div>
 
-async function loadCalls() {
-    const data = await api('/api/calls');
-    $('logs-table').innerHTML = data.map(c => `
-        <tr>
-            <td>${c.timestamp.substring(0,16)}</td>
-            <td>${c.phone_number}</td>
-            <td>${c.lead_name || '-'}</td>
-            <td><span class="badge ${c.outcome==='booked'?'booked':''}">${c.outcome}</span></td>
-            <td>${c.duration_seconds}s</td>
-            <td>${c.recording_url ? `<a href="${c.recording_url}" target="_blank">Listen</a>` : '-'}</td>
-        </tr>
-    `).join('');
-}
+                <!-- Profiles Table -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="list"></i>Agent Profiles</h2></div>
+                    <div class="table-responsive">
+                        <table id="table-agents">
+                            <thead>
+                                <tr>
+                                    <th>Profile Name</th>
+                                    <th>Voice</th>
+                                    <th>Model</th>
+                                    <th>Default</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" style="text-align:center; color:var(--text-secondary)">No profiles available</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-async function loadAppointments() {
-    const date = $('apt-date').value;
-    const data = await api(`/api/appointments${date ? '?date='+date : ''}`);
-    $('apt-table').innerHTML = data.map(a => `
-        <tr>
-            <td>${a.date}</td>
-            <td>${a.time}</td>
-            <td>${a.name}</td>
-            <td>${a.phone}</td>
-            <td>${a.service}</td>
-            <td>${a.status}</td>
-            <td><button class="danger" onclick="cancelAppointment('${a.id}')">Cancel</button></td>
-        </tr>
-    `).join('');
-}
+        <!-- ✏️ AI PROMPT PANEL -->
+        <section id="panel-prompt" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="file-edit"></i>Global Master System Instructions</h2>
+                    <span class="badge badge-orange" id="prompt-status-badge">Default</span>
+                </div>
+                <div style="margin-bottom: 1.5rem">
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.4">
+                        This system prompt is loaded as the base template when dialing leads. You can use <code>{lead_name}</code>, <code>{business_name}</code>, and <code>{service_type}</code> tags to automatically inject dynamic parameters per call.
+                    </p>
+                </div>
+                <div class="form-group">
+                    <textarea id="prompt-textarea" rows="22" style="font-family: monospace; font-size: 0.9rem; line-height: 1.5; color: #a4adc0"></textarea>
+                </div>
+                <div class="flex-row" style="justify-content: flex-end">
+                    <button class="btn btn-danger" onclick="resetGlobalPrompt()"><i data-lucide="rotate-ccw"></i> Restore Default Template</button>
+                    <button class="btn btn-primary" onclick="saveGlobalPrompt()"><i data-lucide="save"></i> Save Changes</button>
+                </div>
+            </div>
+        </section>
 
-window.cancelAppointment = async (id) => {
-    await apiDel(`/api/appointments/${id}`);
-    toast('Cancelled');
-    loadAppointments();
-}
+        <!-- 📅 APPOINTMENTS PANEL -->
+        <section id="panel-appointments" class="tab-panel">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title"><i data-lucide="calendar"></i>Booked Appointments Schedule</h2>
+                    <div class="flex-row" style="margin-bottom:0">
+                        <input type="text" id="appt-date-filter" placeholder="Filter by date: YYYY-MM-DD" style="width:220px; padding:0.5rem 0.8rem" onkeyup="if(event.key==='Enter') loadAppointments()">
+                        <button class="btn btn-secondary" onclick="loadAppointments()" style="padding:0.5rem 1rem"><i data-lucide="search"></i></button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="table-appointments">
+                        <thead>
+                            <tr>
+                                <th>Booking ID</th>
+                                <th>Lead Name</th>
+                                <th>Phone Number</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Service Type</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="8" style="text-align:center; color:var(--text-secondary)">No bookings found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-async function loadSysLogs() {
-    const data = await api('/api/logs');
-    $('logs-container').innerText = data.map(l => `[${l.timestamp}] ${l.level.toUpperCase()} [${l.source}]: ${l.message}\n${l.detail||''}`).join('\n\n');
-}
+        <!-- 📝 CALL LOGS PANEL -->
+        <section id="panel-call-logs" class="tab-panel">
+            <div class="card">
+                <div class="card-header"><h2 class="card-title"><i data-lucide="clipboard-list"></i>Historical Call Records</h2></div>
+                <div class="table-responsive">
+                    <table id="table-call-logs">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Lead Name</th>
+                                <th>Phone Number</th>
+                                <th>Outcome</th>
+                                <th>Interest</th>
+                                <th>Duration</th>
+                                <th>Recording</th>
+                                <th>AI Summary & Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="9" style="text-align:center; color:var(--text-secondary)">No logs loaded</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex-row" style="justify-content: flex-end; margin-top: 1rem">
+                    <button class="btn btn-secondary" onclick="changeLogsPage(-1)"><i data-lucide="chevron-left"></i> Previous</button>
+                    <span style="color:var(--text-secondary); font-size:0.9rem">Page <strong id="logs-current-page" style="color:white">1</strong></span>
+                    <button class="btn btn-secondary" onclick="changeLogsPage(1)">Next <i data-lucide="chevron-right"></i></button>
+                </div>
+            </div>
+        </section>
 
-async function loadAgentProfiles() {
-    const data = await api('/api/agent-profiles');
-    const opts = `<option value="">Default Profile</option>` + data.map(p => `<option value="${p.id}">${p.name} ${p.is_default?'(Default)':''}</option>`).join('');
-    $('sc-profile').innerHTML = opts;
-    $('bc-profile').innerHTML = opts;
-    $('camp-profile').innerHTML = opts;
+        <!-- 👥 CRM PANEL -->
+        <section id="panel-crm" class="tab-panel">
+            <div class="card">
+                <div class="card-header"><h2 class="card-title"><i data-lucide="user-check"></i>Lead database (CRM)</h2></div>
+                <div class="table-responsive">
+                    <table id="table-crm">
+                        <thead>
+                            <tr>
+                                <th>Phone Number</th>
+                                <th>Lead Name</th>
+                                <th>Total Calls</th>
+                                <th>Appointments Booked</th>
+                                <th>Last Outcome</th>
+                                <th>Last Contacted</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7" style="text-align:center; color:var(--text-secondary)">No contacts found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-    $('ag-table').innerHTML = data.map(p => `
-        <tr>
-            <td>${p.name} ${p.is_default?'★':''}</td>
-            <td>${p.voice}</td>
-            <td>${p.model}</td>
-            <td>
-                <button onclick="apiPost('/api/agent-profiles/${p.id}/set-default',{}).then(loadAgentProfiles)">★</button>
-                <button class="danger" onclick="apiDel('/api/agent-profiles/${p.id}').then(loadAgentProfiles)">X</button>
-            </td>
-        </tr>
-    `).join('');
-}
+                <!-- CRM Drilldown View -->
+                <div class="drilldown-container" id="crm-drilldown">
+                    <div class="drilldown-header">
+                        <h3>Drill-Down: <span id="crm-drill-name" style="color:var(--accent-blue)">Amit Sharma</span> (<span id="crm-drill-phone">+91XXXXXXXXXX</span>)</h3>
+                        <button class="btn btn-secondary" style="padding:0.3rem 0.6rem" onclick="closeCRMDrilldown()"><i data-lucide="x"></i> Close</button>
+                    </div>
+                    <div class="grid-2col">
+                        <div>
+                            <h4 style="font-size:0.9rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.5rem">Call History Log</h4>
+                            <div style="border:1px solid var(--border-color); border-radius:8px; height:200px; overflow-y:auto; background:#0a0a12; padding:0.5rem">
+                                <ul id="crm-calls-list" style="list-style:none; display:flex; flex-direction:column; gap:0.4rem; font-size:0.85rem">
+                                </ul>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="font-size:0.9rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.5rem">Agent Memories / Memory Insights</h4>
+                            <div style="border:1px solid var(--border-color); border-radius:8px; height:200px; overflow-y:auto; background:#0a0a12; padding:0.8rem">
+                                <div id="crm-memories-container" style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.88rem; color:#a4adc0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-window.saveAgentProfile = async () => {
-    toast('Saving profile...', 'progress', 0);
-    try {
-        await apiPost('/api/agent-profiles', {
-            name: $('ag-name').value,
-            voice: $('ag-voice').value,
-            model: $('ag-model').value,
-            system_prompt: $('ag-prompt').value || null,
-            enabled_tools: $('ag-tools').value || "[]",
-            is_default: $('ag-default').checked
+        <!-- ⚙️ SETTINGS PANEL -->
+        <section id="panel-settings" class="tab-panel">
+            <div class="grid-2col">
+                <!-- Group 1: LiveKit Credentials -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="network"></i>LiveKit Connection Settings</h2></div>
+                    <form onsubmit="event.preventDefault(); saveSettingsGroup(['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET'], 'set-lk-url', 'set-lk-key', 'set-lk-secret')">
+                        <div class="form-group">
+                            <label for="set-lk-url">LiveKit Connection URL</label>
+                            <input type="text" id="set-lk-url" placeholder="wss://your-project.livekit.cloud">
+                        </div>
+                        <div class="form-group">
+                            <label for="set-lk-key">LiveKit API Key</label>
+                            <input type="text" id="set-lk-key" placeholder="API Key">
+                        </div>
+                        <div class="form-group">
+                            <label for="set-lk-secret">LiveKit API Secret</label>
+                            <div style="position: relative;">
+                                <input type="password" id="set-lk-secret" placeholder="API Secret" style="padding-right: 2.8rem;">
+                                <button type="button" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer;" onclick="togglePasswordVisibility('set-lk-secret', this)">
+                                    <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%">
+                            <i data-lucide="save"></i> Save LiveKit Settings
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Group 2: Google Gemini Settings -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="sparkles"></i>Google Gemini & Voice Plugins</h2></div>
+                    <form onsubmit="event.preventDefault(); saveSettingsGroup(['GOOGLE_API_KEY', 'GEMINI_MODEL', 'GEMINI_TTS_VOICE'], 'set-gemini-key', 'set-gemini-model', 'set-gemini-voice')">
+                        <div class="form-group">
+                            <label for="set-gemini-key">Google Gemini API Key</label>
+                            <div style="position: relative;">
+                                <input type="password" id="set-gemini-key" placeholder="AIzaSy..." style="padding-right: 2.8rem;">
+                                <button type="button" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer;" onclick="togglePasswordVisibility('set-gemini-key', this)">
+                                    <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid-2col">
+                            <div class="form-group">
+                                <label for="set-gemini-model">Default Live Model</label>
+                                <select id="set-gemini-model">
+                                    <option value="gemini-3.1-flash-live-preview">gemini-3.1-flash-live-preview</option>
+                                    <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                                    <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="set-gemini-voice">Default Live Voice</label>
+                                <select id="set-gemini-voice">
+                                    <optgroup label="Female voices">
+                                        <option value="Aoede">Aoede — warm, expressive ⭐</option>
+                                        <option value="Achernar">Achernar — soft & clear</option>
+                                        <option value="Autonoe">Autonoe — natural female</option>
+                                        <option value="Callirrhoe">Callirrhoe — gentle female</option>
+                                        <option value="Despina">Despina — bright female</option>
+                                        <option value="Erinome">Erinome — smooth female</option>
+                                        <option value="Gacrux">Gacrux — rich female</option>
+                                        <option value="Kore">Kore — soft, calm</option>
+                                        <option value="Laomedeia">Laomedeia — light female</option>
+                                        <option value="Leda">Leda — clear female</option>
+                                        <option value="Pulcherrima">Pulcherrima — warm female</option>
+                                        <option value="Sulafat">Sulafat — smooth female</option>
+                                        <option value="Vindemiatrix">Vindemiatrix — professional female</option>
+                                        <option value="Zephyr">Zephyr — airy female</option>
+                                    </optgroup>
+                                    <optgroup label="Male voices">
+                                        <option value="Achird">Achird — clear male</option>
+                                        <option value="Algenib">Algenib — strong male</option>
+                                        <option value="Algieba">Algieba — rich male</option>
+                                        <option value="Alnilam">Alnilam — deep male</option>
+                                        <option value="Charon">Charon — calm, deep</option>
+                                        <option value="Enceladus">Enceladus — expressive male</option>
+                                        <option value="Fenrir">Fenrir — confident male</option>
+                                        <option value="Iapetus">Iapetus — steady male</option>
+                                        <option value="Orus">Orus — warm male</option>
+                                        <option value="Perseus">Perseus — clear male</option>
+                                        <option value="Puck">Puck — bright, energetic</option>
+                                        <option value="Rasalgethi">Rasalgethi — bold male</option>
+                                        <option value="Sadachbia">Sadachbia — natural male</option>
+                                        <option value="Sadaltager">Sadaltager — smooth male</option>
+                                        <option value="Schedar">Schedar — professional male</option>
+                                        <option value="Umbriel">Umbriel — deep, calm</option>
+                                        <option value="Zubenelgenubi">Zubenelgenubi — resonant male</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%">
+                            <i data-lucide="save"></i> Save Gemini Settings
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Group 3: VoBiz & SIP Telephony -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="phone"></i>VoBiz & SIP Telephony</h2></div>
+                    <form onsubmit="event.preventDefault(); saveSettingsGroup(['TWILIO_SIP_DOMAIN', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_SIP_USERNAME', 'TWILIO_SIP_PASSWORD', 'TWILIO_OUTBOUND_NUMBER', 'OUTBOUND_TRUNK_ID', 'DEFAULT_TRANSFER_NUMBER'], 'set-tw-sip', 'set-tw-sid', 'set-tw-token', 'set-sip-username', 'set-sip-password', 'set-tw-phone', 'set-outbound-trunk', 'set-tw-transfer')">
+                        <div class="form-group">
+                            <label for="set-tw-sip">SIP Termination URI / Domain</label>
+                            <input type="text" id="set-tw-sip" placeholder="sip.vobiz.com or your-trunk.pstn.twilio.com">
+                        </div>
+                        <div class="grid-2col">
+                            <div class="form-group">
+                                <label for="set-tw-sid">Twilio Account SID (If using Twilio)</label>
+                                <input type="text" id="set-tw-sid" placeholder="AC...">
+                            </div>
+                            <div class="form-group">
+                                <label for="set-tw-token">Twilio Auth Token (If using Twilio)</label>
+                                <div style="position: relative;">
+                                    <input type="password" id="set-tw-token" placeholder="Token" style="padding-right: 2.8rem;">
+                                    <button type="button" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer;" onclick="togglePasswordVisibility('set-tw-token', this)">
+                                        <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid-2col">
+                            <div class="form-group">
+                                <label for="set-sip-username">SIP Username (For VoBiz / Custom SIP)</label>
+                                <input type="text" id="set-sip-username" placeholder="Username">
+                            </div>
+                            <div class="form-group">
+                                <label for="set-sip-password">SIP Password (For VoBiz / Custom SIP)</label>
+                                <div style="position: relative;">
+                                    <input type="password" id="set-sip-password" placeholder="Password" style="padding-right: 2.8rem;">
+                                    <button type="button" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer;" onclick="togglePasswordVisibility('set-sip-password', this)">
+                                        <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid-3col" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.5rem">
+                            <div class="form-group">
+                                <label for="set-tw-phone">Outbound Number</label>
+                                <input type="text" id="set-tw-phone" placeholder="+1XXXXXXXXXX">
+                            </div>
+                            <div class="form-group">
+                                <label for="set-tw-transfer">Transfer Target</label>
+                                <input type="text" id="set-tw-transfer" placeholder="+1XXXXXXXXXX">
+                            </div>
+                            <div class="form-group">
+                                <label for="set-outbound-trunk">Outbound Trunk ID</label>
+                                <input type="text" id="set-outbound-trunk" placeholder="Livekit Trunk ID">
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1">
+                                <i data-lucide="save"></i> Save SIP Settings
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="setupSIPTrunk()">
+                                <i data-lucide="zap"></i> Create LiveKit SIP Trunk
+                            </button>
+                        </div>
+                        <div id="trunk-creation-status" style="margin-top: 0.8rem; font-size: 0.85rem; color: var(--accent-blue)"></div>
+                    </form>
+                </div>
+
+                <!-- Group 4: Cal.com Scheduling -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="calendar"></i>Cal.com Booking Integration</h2></div>
+                    <form onsubmit="event.preventDefault(); saveSettingsGroup(['CALCOM_API_KEY', 'CALCOM_EVENT_TYPE_ID', 'CALCOM_TIMEZONE'], 'set-cal-key', 'set-cal-event', 'set-cal-tz')">
+                        <div class="form-group">
+                            <label for="set-cal-key">Cal.com API Key</label>
+                            <div style="position: relative;">
+                                <input type="password" id="set-cal-key" placeholder="cal_..." style="padding-right: 2.8rem;">
+                                <button type="button" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer;" onclick="togglePasswordVisibility('set-cal-key', this)">
+                                    <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid-2col">
+                            <div class="form-group">
+                                <label for="set-cal-event">Event Type ID</label>
+                                <input type="text" id="set-cal-event" placeholder="e.g. 123456">
+                            </div>
+                            <div class="form-group">
+                                <label for="set-cal-tz">Calendar Timezone</label>
+                                <input type="text" id="set-cal-tz" value="Asia/Kolkata">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%">
+                            <i data-lucide="save"></i> Save Cal.com Settings
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Group 5: AWS S3 Recordings -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="hard-drive"></i>AWS S3 Recording Storage</h2></div>
+                    <form onsubmit="event.preventDefault(); saveSettingsGroup(['S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY', 'S3_BUCKET', 'S3_REGION', 'S3_ENDPOINT_URL'], 'set-s3-key', 'set-s3-secret', 'set-s3-bucket', 'set-s3-region', 'set-s3-endpoint')">
+                        <div class="form-group">
+                            <label for="set-s3-key">S3 Access Key ID</label>
+                            <input type="text" id="set-s3-key">
+                        </div>
+                        <div class="form-group">
+                            <label for="set-s3-secret">S3 Secret Access Key</label>
+                            <div style="position: relative;">
+                                <input type="password" id="set-s3-secret" style="padding-right: 2.8rem;">
+                                <button type="button" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer;" onclick="togglePasswordVisibility('set-s3-secret', this)">
+                                    <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid-3col" style="display:grid; grid-template-columns:1fr 1fr 1.5fr; gap:0.5rem">
+                            <div class="form-group">
+                                <label for="set-s3-bucket">S3 Bucket</label>
+                                <input type="text" id="set-s3-bucket" value="call-recordings">
+                            </div>
+                            <div class="form-group">
+                                <label for="set-s3-region">S3 Region</label>
+                                <input type="text" id="set-s3-region" value="ap-northeast-1">
+                            </div>
+                            <div class="form-group">
+                                <label for="set-s3-endpoint">Custom Endpoint</label>
+                                <input type="text" id="set-s3-endpoint" placeholder="Optional R2/MinIO">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem">
+                            <i data-lucide="save"></i> Save S3 Settings
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Group 6: Global Tool Toggles -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="wrench"></i>Global Default Tool Toggles</h2></div>
+                    <form onsubmit="event.preventDefault(); saveToolToggles()">
+                        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem">
+                            Configure which tools are available to the AI agent by default if no override profile is assigned.
+                        </p>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; background:#0c0c16; padding:0.8rem; border-radius:8px; border:1px solid var(--border-color); margin-bottom: 1rem" id="global-tools-container">
+                            <label class="checkbox-container"><input type="checkbox" value="check_availability" checked><span>check_availability</span></label>
+                            <label class="checkbox-container"><input type="checkbox" value="book_appointment" checked><span>book_appointment</span></label>
+                            <label class="checkbox-container"><input type="checkbox" value="end_call" checked><span>end_call</span></label>
+                            <label class="checkbox-container"><input type="checkbox" value="transfer_to_human" checked><span>transfer_to_human</span></label>
+                            <label class="checkbox-container"><input type="checkbox" value="send_sms_confirmation" checked><span>send_sms</span></label>
+                            <label class="checkbox-container"><input type="checkbox" value="lookup_contact" checked><span>lookup_contact</span></label>
+                            <label class="checkbox-container"><input type="checkbox" value="remember_details" checked><span>remember_details</span></label>
+                            <label class="checkbox-container"><input type="checkbox" value="book_calcom"><span>book_calcom</span></label>
+                            <label class="checkbox-container"><input type="checkbox" value="cancel_calcom"><span>cancel_calcom</span></label>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%">
+                            <i data-lucide="save"></i> Save Default Tool Toggles
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Group 7: AI Post-Processing -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="brain-circuit"></i>AI Post-Call Processing</h2></div>
+                    <form onsubmit="event.preventDefault(); saveSettingsGroup(['ENABLE_AI_POST_PROCESSING'], 'set-ai-post-process')">
+                        <div class="form-group">
+                            <label for="set-ai-post-process">Post-Call AI Summary & Interest Analysis</label>
+                            <select id="set-ai-post-process">
+                                <option value="true">Enabled</option>
+                                <option value="false">Disabled</option>
+                            </select>
+                            <p style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.4rem">
+                                Automatically extract summaries, outcomes, and lead interest levels using Google Gemini after every call.
+                            </p>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%">
+                            <i data-lucide="save"></i> Save Post-Processing Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+            </div>
+        </section>
+
+        <!-- 📋 LOGS PANEL -->
+        <section id="panel-logs" class="tab-panel">
+            <div class="card">
+                <div class="card-header" style="flex-wrap: wrap; gap: 1rem;">
+                    <h2 class="card-title"><i data-lucide="terminal"></i>System Error & Audit Logs</h2>
+                    <div class="flex-row" style="margin-bottom:0; flex-wrap: wrap;">
+                        <select id="log-filter-level" style="width: 130px; padding: 0.4rem;" onchange="loadLogs()">
+                            <option value="">All Levels</option>
+                            <option value="info">Info</option>
+                            <option value="warning">Warning</option>
+                            <option value="error">Error</option>
+                        </select>
+                        <input type="text" id="log-filter-source" placeholder="Source (e.g. agent)" style="width: 150px; padding: 0.4rem;" onkeyup="if(event.key==='Enter') loadLogs()">
+                        <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem;" id="btn-log-pause" onclick="toggleLogsRefresh()">
+                            <i data-lucide="pause" style="width: 14px; height: 14px;"></i> Pause
+                        </button>
+                        <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem;" onclick="loadLogs()"><i data-lucide="rotate-cw" style="width: 14px; height: 14px;"></i> Refresh</button>
+                        <button class="btn btn-danger" style="padding: 0.4rem 0.8rem;" onclick="clearLogs()"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Clear DB Logs</button>
+                    </div>
+                </div>
+                <div class="console" id="log-console">
+                    <div style="color:var(--text-secondary)">Connecting to log listener...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 🔧 SETUP PANEL -->
+        <section id="panel-setup" class="tab-panel">
+            <div class="card">
+                <div class="card-header"><h2 class="card-title"><i data-lucide="check-square"></i>Onboarding & Quick-Start Setup Manual</h2></div>
+
+                <div class="guide-step">
+                    <h3>1. Database Schema Deployment</h3>
+                    <p>Execute the schema statements located in the <code>supabase_schema.sql</code> file inside your Supabase project's SQL Editor window. Row Level Security (RLS) is disabled for local developer operations.</p>
+                </div>
+
+                <div class="guide-step">
+                    <h3>2. Twilio SIP Termination Setup</h3>
+                    <p>Ensure you have configured a <strong>Twilio Elastic SIP Trunk</strong>:</p>
+                    <ul>
+                        <li>Set up a Termination URI (e.g. <code>avb-test-01.pstn.twilio.com</code>) under Twilio Console.</li>
+                        <li>Configure IP Access Control or Credentials List for authentication.</li>
+                        <li>Verify the phone number is correctly configured and pointing caller ID details to the trunk.</li>
+                    </ul>
+                </div>
+
+                <div class="guide-step">
+                    <h3>3. LiveKit Agents Worker Initialization</h3>
+                    <p>Launch the Python backend service locally by executing: <code>python server.py</code>.</p>
+                    <p>Launch the background Agent worker process by executing: <code>python agent.py start</code>.</p>
+                </div>
+
+                <div class="guide-step">
+                    <h3>4. Cost Breakdown Reference</h3>
+                    <div style="margin-top: 1rem; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem">
+                        <div class="cost-row"><span>Google Gemini Flash Live (Sub-100ms native audio)</span><strong>$0.075 / million tokens</strong></div>
+                        <div class="cost-row"><span>LiveKit Cloud Telephony Port Interface</span><strong>$0.002 / minute</strong></div>
+                        <div class="cost-row"><span>Twilio Elastic Outbound Trunk Route</span><strong>$0.013 / minute</strong></div>
+                        <div class="cost-row" style="border-bottom:none"><span>Total Estimated Operation Cost</span><strong>~$0.02 / minute</strong></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let logsPage = 1;
+        let outcomesChart = null;
+        let timelineChart = null;
+        let durationChart = null;
+        let activeCallTimer = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            loadStats();
+            loadLiveConfig();
+            loadPrompt();
+            loadAgentProfiles();
+            loadAppointments();
+            loadCRM();
+            loadLogs();
+
+            // Auto-refresh logs every 6 seconds if not paused
+            setInterval(() => {
+                if (!logsRefreshPaused) {
+                    loadLogs();
+                }
+            }, 6000);
+            // Auto-refresh stats every 10 seconds
+            setInterval(loadStats, 10000);
         });
-        toast('Profile saved successfully', 'success');
-        loadAgentProfiles();
-    } catch(e) {
-        toast(e.message || 'Failed to save profile', 'error');
-    }
-}
 
-async function loadPrompt() {
-    const d = await api('/api/prompt');
-    $('global-prompt').value = d.prompt;
-}
-window.savePrompt = async () => {
-    toast('Saving global system prompt...', 'progress', 0);
-    try {
-        await apiPost('/api/prompt', {prompt: $('global-prompt').value});
-        toast('Global system prompt saved successfully', 'success');
-    } catch(e) {
-        toast(e.message || 'Failed to save prompt', 'error');
-    }
-}
-window.resetPrompt = async () => {
-    if(!confirm('Are you sure you want to reset the prompt to the default?')) return;
-    toast('Resetting global system prompt...', 'progress', 0);
-    try {
-        await apiDel('/api/prompt');
-        toast('Global system prompt reset successfully', 'success');
-        loadPrompt();
-    } catch(e) {
-        toast(e.message || 'Failed to reset prompt', 'error');
-    }
-}
+        function switchTab(tabId) {
+            document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+            document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.remove("active"));
 
-async function loadCRM() {
-    const d = await api('/api/crm');
-    $('crm-table').innerHTML = (d.data||[]).map(c => `
-        <tr>
-            <td>${c.phone_number}</td>
-            <td>${c.lead_name||'-'}</td>
-            <td>${c.total_calls}</td>
-            <td>${c.booked}</td>
-            <td>${c.last_call.substring(0,16)}</td>
-        </tr>
-    `).join('');
-}
+            const targetBtn = Array.from(document.querySelectorAll(".tab-btn")).find(btn => btn.textContent.toLowerCase().includes(tabId.replace('-', ' ')));
+            if (targetBtn) targetBtn.classList.add("active");
 
-async function loadSettings() {
-    const d = await api('/api/settings');
-    if(d.LIVEKIT_URL) $('set-lk-url').value = d.LIVEKIT_URL.value;
-    if(d.VOBIZ_SIP_DOMAIN) $('set-vb-dom').value = d.VOBIZ_SIP_DOMAIN.value;
-    if(d.VOBIZ_USERNAME) $('set-vb-usr').value = d.VOBIZ_USERNAME.value;
-    if(d.VOBIZ_OUTBOUND_NUMBER) $('set-vb-num').value = d.VOBIZ_OUTBOUND_NUMBER.value;
-    if(d.EMERGENCY_STOP) $('set-emergency-stop').value = d.EMERGENCY_STOP.value || "false";
-    if(d.MAX_CALLS_PER_MINUTE) $('set-max-minute').value = d.MAX_CALLS_PER_MINUTE.value || "15";
-    if(d.MAX_DAILY_CALLS) $('set-max-daily').value = d.MAX_DAILY_CALLS.value || "500";
-}
-window.saveSettings = async () => {
-    toast('Saving settings...', 'progress', 0);
-    try {
-        await apiPost('/api/settings', {settings: {
-            LIVEKIT_URL: $('set-lk-url').value,
-            LIVEKIT_API_KEY: $('set-lk-key').value,
-            LIVEKIT_API_SECRET: $('set-lk-sec').value,
-            VOBIZ_SIP_DOMAIN: $('set-vb-dom').value,
-            VOBIZ_USERNAME: $('set-vb-usr').value,
-            VOBIZ_PASSWORD: $('set-vb-pw').value,
-            VOBIZ_OUTBOUND_NUMBER: $('set-vb-num').value,
-            EMERGENCY_STOP: $('set-emergency-stop').value,
-            MAX_CALLS_PER_MINUTE: $('set-max-minute').value,
-            MAX_DAILY_CALLS: $('set-max-daily').value
-        }});
-        toast('Settings saved successfully', 'success');
-    } catch(e) {
-        toast(e.message || 'Failed to save settings', 'error');
-    }
-}
+            const panel = document.getElementById(`panel-${tabId}`);
+            if (panel) {
+                panel.classList.add("active");
+            }
 
-window.createSIPTrunk = async () => {
-    toast('Creating SIP trunk...', 'progress', 0);
-    try {
-        const r = await apiPost('/api/setup/trunk', {});
-        if(r.trunk_id) {
-            toast('Trunk created: ' + r.trunk_id, 'success');
-        } else {
-            toast('Failed to create trunk', 'error');
+            // Perform specific load updates depending on the selected tab
+            if (tabId === 'stats') {
+                loadStats();
+            } else if (tabId === 'appointments') {
+                loadAppointments();
+            } else if (tabId === 'call-logs') {
+                loadCallLogs();
+            } else if (tabId === 'crm') {
+                loadCRM();
+            } else if (tabId === 'agents') {
+                loadAgentProfiles();
+            } else if (tabId === 'settings') {
+                loadSettingsForm();
+            }
         }
-    } catch(e) {
-        toast(e.message || 'Error creating trunk', 'error');
-    }
-}
 
-async function loadCampaigns() {
-    const data = await api('/api/campaigns');
-    $('camp-table').innerHTML = data.map(c => `
-        <tr>
-            <td>${c.name}</td>
-            <td>${c.schedule_type} @ ${c.schedule_time||''}</td>
-            <td>${c.status}</td>
-            <td>${c.total_dispatched}/${c.total_failed}</td>
-            <td>
-                <button onclick="apiPost('/api/campaigns/${c.id}/run',{}).then(loadCampaigns)">Run</button>
-                <button class="danger" onclick="apiDel('/api/campaigns/${c.id}').then(loadCampaigns)">X</button>
-            </td>
-        </tr>
-    `).join('');
-}
-window.createCampaign = async () => {
-    const file = $('camp-csv').files[0];
-    if(!file) return toast('Select CSV', 'error');
-    const name = $('camp-name').value.trim();
-    if(!name) return toast('Enter campaign name', 'error');
-    
-    toast('Creating campaign...', 'progress', 0);
-    try {
-        const text = await file.text();
-        const rows = text.split('\n').slice(1).filter(r=>r.trim()).map(r => {
-            const [phone, lead_name, business_name, service_type] = r.split(',');
-            return {phone: phone.trim(), lead_name: lead_name?.trim(), business_name: business_name?.trim(), service_type: service_type?.trim()};
-        });
-        
-        await apiPost('/api/campaigns', {
-            name: name,
-            schedule_type: $('camp-sched').value,
-            schedule_time: $('camp-time').value,
-            contacts: rows,
-            agent_profile_id: $('camp-profile').value || null
-        });
-        toast('Campaign saved successfully', 'success');
-        loadCampaigns();
-    } catch(e) {
-        toast(e.message || 'Failed to create campaign', 'error');
-    }
-}
+        // ── STATS & CHARTS INTEGRATION ───────────────────────────────────────────────
 
-window.startBatch = async () => {
-    const file = $('bc-csv').files[0];
-    if(!file) return toast('Select CSV', 'error');
-    
-    toast('Starting batch call job...', 'progress', 0);
-    try {
-        const text = await file.text();
-        const rows = text.split('\n').slice(1).filter(r=>r.trim()).map(r => {
-            const [phone, lead_name, business_name, service_type] = r.split(',');
-            return {phone: phone.trim(), lead_name: lead_name?.trim(), business_name: business_name?.trim(), service_type: service_type?.trim()};
-        });
-        await apiPost('/api/campaigns', {
-            name: 'Batch Call ' + new Date().toISOString(),
-            schedule_type: 'once',
-            contacts: rows,
-            call_delay_seconds: parseInt($('bc-delay').value),
-            agent_profile_id: $('bc-profile').value || null
-        });
-        toast('Batch started successfully', 'success');
-    } catch(e) {
-        toast(e.message || 'Failed to start batch', 'error');
-    }
-}
+        async function loadStats() {
+            try {
+                const res = await fetch("/api/stats");
+                const stats = await res.json();
 
-async function checkRole() {
-    try {
-        const me = await api('/api/me');
-        if (me.role !== 'admin') {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                const text = btn.innerText.toLowerCase();
-                if (text.includes('settings') || text.includes('logs') || text.includes('prompt')) {
-                    btn.style.display = 'none';
+                document.getElementById("kpi-total-calls").textContent = stats.total_calls || 0;
+                document.getElementById("kpi-booked").textContent = stats.booked || 0;
+                document.getElementById("kpi-rate").textContent = (stats.booking_rate_percent || 0) + "%";
+                document.getElementById("kpi-duration").textContent = (stats.avg_duration_seconds || 0) + "s";
+
+                renderCharts(stats);
+            } catch (err) {
+                console.error("Stats load failed", err);
+            }
+        }
+
+        async function loadLiveConfig() {
+            try {
+                const res = await fetch("/api/settings");
+                const settings = await res.json();
+
+                const lkUrl = settings.LIVEKIT_URL ? settings.LIVEKIT_URL.value || "" : "";
+                const trunkId = settings.OUTBOUND_TRUNK_ID ? settings.OUTBOUND_TRUNK_ID.value || "" : "";
+
+                document.querySelector("#chip-livekit-url .val").textContent = lkUrl ? lkUrl.replace("wss://", "") : "Not set";
+                document.querySelector("#chip-sip-trunk .val").textContent = trunkId ? trunkId : "Not set";
+            } catch (err) {
+                console.error("Config chip loading failed", err);
+            }
+        }
+
+        function renderCharts(stats) {
+            // Outcomes Donut
+            const outcomesCtx = document.getElementById("chart-outcomes").getContext("2d");
+            const outcomesLabels = Object.keys(stats.outcomes || {});
+            const outcomesData = Object.values(stats.outcomes || {});
+
+            if (outcomesChart) outcomesChart.destroy();
+            outcomesChart = new Chart(outcomesCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: outcomesLabels.length ? outcomesLabels : ['No Calls'],
+                    datasets: [{
+                        data: outcomesData.length ? outcomesData : [1],
+                        backgroundColor: outcomesLabels.length ? ['#00ff87', '#ff3b69', '#00ccff', '#ff9f00', '#8a2be2', '#555'] : ['#222'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#9094a6', font: { family: 'Outfit' } } }
+                    }
+                }
+            });
+
+            // Timeline Line
+            const timelineCtx = document.getElementById("chart-timeline").getContext("2d");
+            const timelineLabels = (stats.timeline || []).map(t => t.date.slice(5));
+            const timelineData = (stats.timeline || []).map(t => t.count);
+
+            if (timelineChart) timelineChart.destroy();
+            timelineChart = new Chart(timelineCtx, {
+                type: 'line',
+                data: {
+                    labels: timelineLabels,
+                    datasets: [{
+                        label: 'Calls',
+                        data: timelineData,
+                        borderColor: '#00ccff',
+                        backgroundColor: 'rgba(0, 204, 255, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: '#202036' }, ticks: { color: '#9094a6' } },
+                        y: { grid: { color: '#202036' }, ticks: { color: '#9094a6', stepSize: 1 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Duration Bar
+            const durationCtx = document.getElementById("chart-duration").getContext("2d");
+            const durLabels = Object.keys(stats.duration_by_outcome || {});
+            const durData = Object.values(stats.duration_by_outcome || {}).map(v => Math.round(v));
+
+            if (durationChart) durationChart.destroy();
+            durationChart = new Chart(durationCtx, {
+                type: 'bar',
+                data: {
+                    labels: durLabels.length ? durLabels : ['No Outcomes'],
+                    datasets: [{
+                        label: 'Avg Seconds',
+                        data: durData.length ? durData : [0],
+                        backgroundColor: '#ff9f00',
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: '#202036' }, ticks: { color: '#9094a6' } },
+                        y: { grid: { color: '#202036' }, ticks: { color: '#9094a6' } }
+                    },
+                    plugins: { legend: { display: false } }
                 }
             });
         }
-    } catch(e) {
-        console.error("Failed to fetch user role", e);
-    }
-}
 
-async function loadUsers() {
-    try {
-        const d = await api('/api/settings/users');
-        $('users-table-body').innerHTML = d.users.map(u => `
-            <tr>
-                <td>${u.email}</td>
-                <td><span class="badge ${u.role === 'admin' ? 'booked' : ''}">${u.role}</span></td>
-                <td style="text-align: right;">
-                    <button class="danger" onclick="deleteUser('${u.email}')" style="padding: 0.25rem 0.75rem; font-size: 12px; height: auto; cursor: pointer;">Delete</button>
-                </td>
-            </tr>
-        `).join('');
-    } catch(e) {
-        toast('Error loading users list');
-    }
-}
+        // ── SINGLE CALL ──────────────────────────────────────────────────────────────
 
-window.addNewUser = async () => {
-    const email = $('new-user-email').value.trim();
-    const password = $('new-user-password').value;
-    const role = $('new-user-role').value;
-    if(!email || !password) return toast('Please fill out all fields', 'error');
-    toast('Adding user...', 'progress', 0);
-    try {
-        const r = await apiPost('/api/settings/users', { email, password, role });
-        toast(r.message || 'User added successfully', 'success');
-        $('new-user-email').value = '';
-        $('new-user-password').value = '';
-        loadUsers();
-    } catch(e) {
-        toast(e.message || 'Failed to add user', 'error');
-    }
-}
+        function toggleCustomPromptArea() {
+            const checked = document.getElementById("sc-toggle-prompt").checked;
+            document.getElementById("sc-prompt-container").style.display = checked ? "block" : "none";
+        }
 
-window.deleteUser = async (email) => {
-    if(!confirm(`Are you sure you want to delete user: ${email}?`)) return;
-    toast('Deleting user...', 'progress', 0);
-    try {
-        const r = await apiDel(`/api/settings/users/${email}`);
-        toast(r.message || 'User deleted', 'success');
-        loadUsers();
-    } catch(e) {
-        toast(e.message || 'Failed to delete user', 'error');
-    }
-}
+        async function dispatchSingleCall(e) {
+            e.preventDefault();
+            const btn = document.getElementById("btn-sc-dispatch");
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="loader" class="animate-spin" style="animation: spin 1s linear infinite"></i> Dispatching...`;
+            lucide.createIcons();
 
-// Init
-window.onload = async () => {
-    await checkRole();
-    loadStats();
-    setInterval(loadStats, 10000);
-};
-</script>
+            const phone = document.getElementById("sc-phone").value.trim();
+            const leadName = document.getElementById("sc-lead-name").value.trim();
+            const bizName = document.getElementById("sc-biz-name").value.trim();
+            const serviceType = document.getElementById("sc-service-type").value.trim();
+            const agentProfileId = document.getElementById("sc-profile").value;
+            const customPrompt = document.getElementById("sc-toggle-prompt").checked ? document.getElementById("sc-custom-prompt").value.trim() : null;
+
+            try {
+                const res = await fetch("/api/call", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        phone: phone || null,
+                        lead_name: leadName,
+                        business_name: bizName,
+                        service_type: serviceType,
+                        agent_profile_id: agentProfileId || null,
+                        system_prompt: customPrompt
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Connection request failed");
+
+                // Start Monitor
+                document.getElementById("session-monitor-empty").style.display = "none";
+                const activeMon = document.getElementById("session-monitor-active");
+                activeMon.style.display = "block";
+                document.getElementById("monitor-phone").textContent = data.phone || "Test Number";
+                document.getElementById("monitor-lead").textContent = `Lead: ${leadName} | Room: ${data.room}`;
+                document.getElementById("monitor-room").textContent = data.room;
+                document.getElementById("monitor-status").textContent = "Dispatched";
+
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="phone-outgoing"></i> Call Lead Now`;
+                lucide.createIcons();
+            }
+        }
+
+        // ── BATCH CALLING ────────────────────────────────────────────────────────────
+
+        let batchLeads = [];
+
+        function parseBatchCSV(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split("\n");
+                const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+
+                batchLeads = [];
+                const tbody = document.querySelector("#table-batch-preview tbody");
+                tbody.innerHTML = "";
+
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    const cols = lines[i].split(",").map(c => c.trim());
+                    const lead = {};
+                    headers.forEach((h, idx) => {
+                        lead[h] = cols[idx] || "";
+                    });
+
+                    if (lead.phone) {
+                        batchLeads.push(lead);
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `<td>${lead.phone}</td><td>${lead.lead_name || lead.name || 'there'}</td><td>${lead.service_type || lead.service || 'Appointment'}</td>`;
+                        tbody.appendChild(tr);
+                    }
+                }
+
+                document.getElementById("batch-stats-summary").style.display = "block";
+                document.getElementById("parsed-count").textContent = batchLeads.length;
+                document.getElementById("btn-start-batch").disabled = batchLeads.length === 0;
+            };
+            reader.readAsText(file);
+        }
+
+        async function executeBatchCall() {
+            const btn = document.getElementById("btn-start-batch");
+            btn.disabled = true;
+            document.getElementById("batch-progress-container").style.display = "block";
+
+            const fill = document.getElementById("batch-progress-fill");
+            const text = document.getElementById("batch-progress-text");
+            const successSpan = document.getElementById("batch-success-count");
+            const failedSpan = document.getElementById("batch-failed-count");
+            const statusText = document.getElementById("batch-status-text");
+
+            statusText.textContent = "Processing Queue";
+            let success = 0;
+            let failed = 0;
+            const delay = parseInt(document.getElementById("bc-delay").value) || 5;
+            const agentProfileId = document.getElementById("bc-profile").value;
+
+            for (let i = 0; i < batchLeads.length; i++) {
+                const lead = batchLeads[i];
+                text.textContent = `${i + 1} / ${batchLeads.length} Leads`;
+                fill.style.width = `${((i + 1) / batchLeads.length) * 100}%`;
+
+                try {
+                    const res = await fetch("/api/call", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            phone: lead.phone,
+                            lead_name: lead.lead_name || lead.name || "there",
+                            business_name: lead.business_name || lead.business || "our company",
+                            service_type: lead.service_type || lead.service || "our service",
+                            agent_profile_id: agentProfileId || null
+                        })
+                    });
+                    if (res.ok) {
+                        success++;
+                        successSpan.textContent = success;
+                    } else {
+                        failed++;
+                        failedSpan.textContent = failed;
+                    }
+                } catch (err) {
+                    failed++;
+                    failedSpan.textContent = failed;
+                }
+
+                if (i < batchLeads.length - 1) {
+                    statusText.textContent = `Delay interval: Waiting ${delay}s...`;
+                    await new Promise(resolve => setTimeout(resolve, delay * 1000));
+                }
+            }
+
+            statusText.textContent = "Finished Campaign";
+            btn.disabled = false;
+        }
+
+        // ── CAMPAIGNS ────────────────────────────────────────────────────────────────
+
+        let campaignLeads = [];
+
+        function parseCampaignCSV(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split("\n");
+                const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+
+                campaignLeads = [];
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    const cols = lines[i].split(",").map(c => c.trim());
+                    const lead = {};
+                    headers.forEach((h, idx) => {
+                        lead[h] = cols[idx] || "";
+                    });
+                    if (lead.phone) campaignLeads.push(lead);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function toggleCampaignTime() {
+            const type = document.getElementById("camp-schedule-type").value;
+            document.getElementById("camp-time-container").style.display = type === "once" ? "none" : "block";
+        }
+
+        function toggleCampaignPromptArea() {
+            const checked = document.getElementById("camp-toggle-prompt").checked;
+            document.getElementById("camp-prompt-container").style.display = checked ? "block" : "none";
+        }
+
+        async function createCampaign(e) {
+            e.preventDefault();
+            if (campaignLeads.length === 0) {
+                alert("Please parse a valid CSV containing leads first.");
+                return;
+            }
+
+            const name = document.getElementById("camp-name").value.trim();
+            const profileId = document.getElementById("camp-profile").value;
+            const scheduleType = document.getElementById("camp-schedule-type").value;
+            const scheduleTime = document.getElementById("camp-time").value.trim();
+            const delay = parseInt(document.getElementById("camp-delay").value) || 5;
+            const systemPrompt = document.getElementById("camp-toggle-prompt").checked ? document.getElementById("camp-custom-prompt").value.trim() : null;
+
+            try {
+                const res = await fetch("/api/campaigns", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name,
+                        contacts: campaignLeads,
+                        schedule_type: scheduleType,
+                        schedule_time: scheduleTime,
+                        call_delay_seconds: delay,
+                        agent_profile_id: profileId || null,
+                        system_prompt: systemPrompt
+                    })
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.detail || "Failed to create campaign");
+                }
+
+                alert("Campaign configured successfully!");
+                document.getElementById("form-campaign").reset();
+                campaignLeads = [];
+                switchTab("campaigns");
+                loadCampaigns();
+
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function loadCampaigns() {
+            try {
+                const res = await fetch("/api/campaigns");
+                const campaigns = await res.json();
+                const tbody = document.querySelector("#table-campaigns tbody");
+                tbody.innerHTML = "";
+
+                if (campaigns.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-secondary)">No campaigns scheduled</td></tr>`;
+                    return;
+                }
+
+                campaigns.forEach(c => {
+                    const tr = document.createElement("tr");
+                    const schedStr = c.schedule_type === "once" ? "Once (Immediate)" : `${c.schedule_type} @ ${c.schedule_time}`;
+                    const disp = c.total_dispatched || 0;
+                    const fail = c.total_failed || 0;
+                    const activeBadge = c.status === "active" ? `<span class="badge badge-green">Active</span>` : c.status === "paused" ? `<span class="badge badge-orange">Paused</span>` : `<span class="badge badge-blue">Completed</span>`;
+
+                    tr.innerHTML = `
+                        <td><strong>${c.name}</strong></td>
+                        <td>${schedStr}</td>
+                        <td>${disp} ok / ${fail} failed</td>
+                        <td>${activeBadge}</td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding:0.3rem 0.6rem" onclick="dispatchCampaignNow('${c.id}')"><i data-lucide="play" style="width:14px"></i></button>
+                            <button class="btn btn-secondary" style="padding:0.3rem 0.6rem" onclick="toggleCampaignStatus('${c.id}', '${c.status}')"><i data-lucide="${c.status === 'active' ? 'pause' : 'check'}" style="width:14px"></i></button>
+                            <button class="btn btn-danger" style="padding:0.3rem 0.6rem" onclick="deleteCampaign('${c.id}')"><i data-lucide="trash-2" style="width:14px"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function dispatchCampaignNow(id) {
+            if (!confirm("Are you sure you want to run this campaign immediately?")) return;
+            try {
+                const res = await fetch(`/api/campaigns/${id}/run`, { method: "POST" });
+                if (res.ok) alert("Campaign launched in the background!");
+                loadCampaigns();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function toggleCampaignStatus(id, curStatus) {
+            const next = curStatus === "active" ? "paused" : "active";
+            try {
+                await fetch(`/api/campaigns/${id}/status`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: next })
+                });
+                loadCampaigns();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function deleteCampaign(id) {
+            if (!confirm("Delete this campaign schedule?")) return;
+            try {
+                await fetch(`/api/campaigns/${id}`, { method: "DELETE" });
+                loadCampaigns();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // ── AGENTS ───────────────────────────────────────────────────────────────────
+
+        async function loadAgentProfiles() {
+            try {
+                const res = await fetch("/api/agent-profiles");
+                const profiles = await res.json();
+
+                // Dropdowns fill
+                const dropdowns = [document.getElementById("sc-profile"), document.getElementById("bc-profile"), document.getElementById("camp-profile")];
+                dropdowns.forEach(d => {
+                    if (d) {
+                        d.innerHTML = `<option value="">Use Default Profile</option>`;
+                        profiles.forEach(p => {
+                            d.innerHTML += `<option value="${p.id}">${p.name} (${p.voice})</option>`;
+                        });
+                    }
+                });
+
+                // Table fill
+                const tbody = document.querySelector("#table-agents tbody");
+                tbody.innerHTML = "";
+                if (profiles.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-secondary)">No agent profiles configured</td></tr>`;
+                    return;
+                }
+
+                profiles.forEach(p => {
+                    const tr = document.createElement("tr");
+                    const isDef = p.is_default ? `<span class="badge badge-green">Default</span>` : ``;
+                    tr.innerHTML = `
+                        <td><strong>${p.name}</strong></td>
+                        <td>${p.voice}</td>
+                        <td>${p.model}</td>
+                        <td>${isDef}</td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding:0.3rem 0.6rem" onclick="editAgentProfile('${p.id}')"><i data-lucide="edit" style="width:14px"></i></button>
+                            <button class="btn btn-secondary" style="padding:0.3rem 0.6rem" onclick="setAgentDefault('${p.id}')"><i data-lucide="shield-alert" style="width:14px"></i></button>
+                            <button class="btn btn-danger" style="padding:0.3rem 0.6rem" onclick="deleteAgentProfile('${p.id}')"><i data-lucide="trash-2" style="width:14px"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function saveAgentProfile(e) {
+            e.preventDefault();
+            const id = document.getElementById("agent-id").value;
+            const name = document.getElementById("agent-name").value.trim();
+            const voice = document.getElementById("agent-voice").value;
+            const model = document.getElementById("agent-model").value;
+            const systemPrompt = document.getElementById("agent-prompt").value.trim();
+            const isDefault = document.getElementById("agent-default").checked;
+
+            const enabledTools = [];
+            document.querySelectorAll("#agent-tools-container input:checked").forEach(cb => {
+                enabledTools.push(cb.value);
+            });
+
+            const method = id ? "PUT" : "POST";
+            const url = id ? `/api/agent-profiles/${id}` : "/api/agent-profiles";
+
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name, voice, model,
+                        system_prompt: systemPrompt || null,
+                        enabled_tools: JSON.stringify(enabledTools),
+                        is_default: isDefault
+                    })
+                });
+
+                if (res.ok) {
+                    alert("Agent Profile stored successfully!");
+                    resetAgentForm();
+                    loadAgentProfiles();
+                } else {
+                    const data = await res.json();
+                    throw new Error(data.detail || "Agent save failure");
+                }
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function editAgentProfile(id) {
+            try {
+                const res = await fetch(`/api/agent-profiles/${id}`);
+                const p = await res.json();
+
+                document.getElementById("agent-id").value = p.id;
+                document.getElementById("agent-name").value = p.name;
+                document.getElementById("agent-voice").value = p.voice;
+                document.getElementById("agent-model").value = p.model;
+                document.getElementById("agent-prompt").value = p.system_prompt || "";
+                document.getElementById("agent-default").checked = p.is_default === 1;
+
+                // Tool checkboxes
+                let tools = [];
+                try {
+                    tools = JSON.parse(p.enabled_tools || "[]");
+                } catch(e){}
+
+                document.querySelectorAll("#agent-tools-container input").forEach(cb => {
+                    cb.checked = tools.includes(cb.value);
+                });
+
+                document.getElementById("agent-form-title").innerHTML = `<i data-lucide="edit"></i> Modify Profile: ${p.name}`;
+                lucide.createIcons();
+
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function setAgentDefault(id) {
+            try {
+                await fetch(`/api/agent-profiles/${id}/set-default`, { method: "POST" });
+                loadAgentProfiles();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function deleteAgentProfile(id) {
+            if (!confirm("Are you sure you want to delete this profile?")) return;
+            try {
+                await fetch(`/api/agent-profiles/${id}`, { method: "DELETE" });
+                loadAgentProfiles();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        function resetAgentForm() {
+            document.getElementById("agent-id").value = "";
+            document.getElementById("form-agent").reset();
+            document.getElementById("agent-form-title").innerHTML = `<i data-lucide="bot"></i> Create Voice Agent Profile`;
+            lucide.createIcons();
+        }
+
+        // ── GLOBAL SYSTEM PROMPT ─────────────────────────────────────────────────────
+
+        async function loadPrompt() {
+            try {
+                const res = await fetch("/api/prompt");
+                const data = await res.json();
+                document.getElementById("prompt-textarea").value = data.prompt;
+                const status = document.getElementById("prompt-status-badge");
+                if (data.is_custom) {
+                    status.textContent = "Custom Active";
+                    status.className = "badge badge-blue";
+                } else {
+                    status.textContent = "System Default";
+                    status.className = "badge badge-orange";
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function saveGlobalPrompt() {
+            const prompt = document.getElementById("prompt-textarea").value;
+            try {
+                await fetch("/api/prompt", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt })
+                });
+                alert("Global prompt saved!");
+                loadPrompt();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function resetGlobalPrompt() {
+            if (!confirm("Restore factory default appointment prompt?")) return;
+            try {
+                await fetch("/api/prompt", { method: "DELETE" });
+                loadPrompt();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // ── APPOINTMENTS ─────────────────────────────────────────────────────────────
+
+        async function loadAppointments() {
+            const date = document.getElementById("appt-date-filter").value.trim();
+            let url = "/api/appointments";
+            if (date) url += `?date=${date}`;
+
+            try {
+                const res = await fetch(url);
+                const list = await res.json();
+                const tbody = document.querySelector("#table-appointments tbody");
+                tbody.innerHTML = "";
+
+                if (list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-secondary)">No appointments booked</td></tr>`;
+                    return;
+                }
+
+                list.forEach(a => {
+                    const tr = document.createElement("tr");
+                    const statusBadge = a.status === 'booked' ? `<span class="badge badge-green">Active</span>` : `<span class="badge badge-red">Cancelled</span>`;
+                    const cancelBtn = a.status === 'booked' ? `<button class="btn btn-danger" style="padding:0.3rem 0.6rem" onclick="cancelBooking('${a.id}')"><i data-lucide="x-circle" style="width:14px"></i> Cancel</button>` : ``;
+
+                    tr.innerHTML = `
+                        <td><code>${a.id.slice(0, 8).toUpperCase()}</code></td>
+                        <td><strong>${a.name}</strong></td>
+                        <td>${a.phone}</td>
+                        <td>${a.date}</td>
+                        <td>${a.time}</td>
+                        <td>${a.service}</td>
+                        <td>${statusBadge}</td>
+                        <td>${cancelBtn}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function cancelBooking(id) {
+            if (!confirm("Are you sure you want to cancel this booking?")) return;
+            try {
+                const res = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
+                if (res.ok) alert("Appointment cancelled successfully.");
+                loadAppointments();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // ── CALL LOGS (PAGINATION) ───────────────────────────────────────────────────
+
+        async function loadCallLogs() {
+            try {
+                const res = await fetch(`/api/calls?page=${logsPage}&limit=12`);
+                const logs = await res.json();
+                const tbody = document.querySelector("#table-call-logs tbody");
+                tbody.innerHTML = "";
+
+                if (logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-secondary)">No call records found</td></tr>`;
+                    return;
+                }
+
+                logs.forEach(l => {
+                    const tr = document.createElement("tr");
+                    const ts = l.timestamp ? l.timestamp.replace("T", " ").slice(0, 16) : "";
+                    const badge = l.outcome === 'booked' ? 'badge-green' : l.outcome === 'not_interested' ? 'badge-red' : 'badge-orange';
+                    const rec = l.recording_url ? `
+                        <div class="audio-wrapper">
+                            <audio src="${l.recording_url}" controls></audio>
+                            <a href="${l.recording_url}" target="_blank" title="Download"><i data-lucide="download" style="width:14px"></i></a>
+                        </div>
+                    ` : `<span style="color:var(--text-secondary); font-size:0.8rem">No audio</span>`;
+
+                    let summaryText = l.summary || "";
+                    let notesText = l.notes || "";
+                    let interestLvlText = l.interest_level || "neutral";
+
+                    if (!summaryText && notesText.includes("[AI Summary]:")) {
+                        const sumMatch = notesText.match(/\[AI Summary\]:\s*([^\n]+)/);
+                        if (sumMatch) summaryText = sumMatch[1];
+                        const intMatch = notesText.match(/\[AI Interest Level\]:\s*([^\n]+)/);
+                        if (intMatch) interestLvlText = intMatch[1].trim();
+                        const notesMatch = notesText.match(/\[Notes\]:\s*([\s\S]+)/);
+                        notesText = notesMatch ? notesMatch[1] : "";
+                    }
+
+                    const intBadge = interestLvlText === 'interested' || interestLvlText === 'booked' ? 'badge-green' : interestLvlText === 'not_interested' ? 'badge-red' : interestLvlText === 'callback' ? 'badge-blue' : 'badge-orange';
+
+                    tr.innerHTML = `
+                        <td>${ts}</td>
+                        <td><strong>${l.lead_name || 'there'}</strong></td>
+                        <td>${l.phone_number}</td>
+                        <td><span class="badge ${badge}">${l.outcome}</span></td>
+                        <td><span class="badge ${intBadge}">${interestLvlText}</span></td>
+                        <td>${l.duration_seconds || 0}s</td>
+                        <td>${rec}</td>
+                        <td>
+                            ${summaryText ? `<div style="color:var(--text-secondary); font-size:0.8rem; font-style:italic; margin-bottom:0.4rem; padding:0.3rem; background:rgba(255,255,255,0.03); border-radius:4px; line-height:1.3"><strong style="color:var(--text-primary)">AI Summary:</strong> ${summaryText}</div>` : ''}
+                            <div class="flex-row">
+                                <input type="text" value="${notesText}" style="padding:0.4rem; font-size:0.85rem" id="notes-${l.id}" placeholder="Add feedback...">
+                                <button class="btn btn-secondary" style="padding:0.4rem 0.8rem" onclick="saveCallNotes('${l.id}')"><i data-lucide="save" style="width:14px"></i></button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function changeLogsPage(diff) {
+            logsPage += diff;
+            if (logsPage < 1) logsPage = 1;
+            document.getElementById("logs-current-page").textContent = logsPage;
+            loadCallLogs();
+        }
+
+        async function saveCallNotes(id) {
+            const val = document.getElementById(`notes-${id}`).value;
+            try {
+                const res = await fetch(`/api/calls/${id}/notes`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ notes: val })
+                });
+                if (res.ok) alert("Call details updated.");
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        // ── CRM (LEADS DIRECTORY) ────────────────────────────────────────────────────
+
+        async function loadCRM() {
+            try {
+                const res = await fetch("/api/crm");
+                const result = await res.json();
+                const tbody = document.querySelector("#table-crm tbody");
+                tbody.innerHTML = "";
+
+                const data = result.data || [];
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-secondary)">No CRM entries</td></tr>`;
+                    return;
+                }
+
+                data.forEach(c => {
+                    const tr = document.createElement("tr");
+                    const ts = c.last_call ? c.last_call.replace("T", " ").slice(0, 16) : "";
+                    const badge = c.last_outcome === 'booked' ? 'badge-green' : c.last_outcome === 'not_interested' ? 'badge-red' : 'badge-orange';
+
+                    tr.innerHTML = `
+                        <td><strong>${c.phone_number}</strong></td>
+                        <td>${c.lead_name || 'unknown'}</td>
+                        <td>${c.total_calls} calls</td>
+                        <td>${c.booked} booked</td>
+                        <td><span class="badge ${badge}">${c.last_outcome}</span></td>
+                        <td>${ts}</td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding:0.4rem 0.8rem" onclick="drilldownCRM('${c.phone_number}', '${c.lead_name}')">
+                                <i data-lucide="eye" style="width:14px"></i> History
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                lucide.createIcons();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function drilldownCRM(phone, name) {
+            document.getElementById("crm-drill-name").textContent = name || "Lead";
+            document.getElementById("crm-drill-phone").textContent = phone;
+            document.getElementById("crm-drilldown").style.display = "block";
+
+            try {
+                const callsRes = await fetch(`/api/crm/calls?phone=${encodeURIComponent(phone)}`);
+                const callsData = await callsRes.json();
+                const calls = callsData.data || [];
+
+                const list = document.getElementById("crm-calls-list");
+                list.innerHTML = "";
+
+                if (calls.length === 0) {
+                    list.innerHTML = `<li>No calls matched.</li>`;
+                } else {
+                    calls.forEach(cl => {
+                        const li = document.createElement("li");
+                        li.style.borderBottom = "1px solid #1a1a2e";
+                        li.style.padding = "0.4rem 0";
+                        const badge = cl.outcome === 'booked' ? 'badge-green' : cl.outcome === 'not_interested' ? 'badge-red' : 'badge-orange';
+                        
+                        let summaryText = cl.summary || "";
+                        let notesText = cl.notes || "";
+                        let interestLvlText = cl.interest_level || "";
+
+                        if (!summaryText && notesText.includes("[AI Summary]:")) {
+                            const sumMatch = notesText.match(/\[AI Summary\]:\s*([^\n]+)/);
+                            if (sumMatch) summaryText = sumMatch[1];
+                            const intMatch = notesText.match(/\[AI Interest Level\]:\s*([^\n]+)/);
+                            if (intMatch) interestLvlText = intMatch[1].trim();
+                            const notesMatch = notesText.match(/\[Notes\]:\s*([\s\S]+)/);
+                            notesText = notesMatch ? notesMatch[1] : "";
+                        }
+
+                        const intBadge = interestLvlText === 'interested' || interestLvlText === 'booked' ? 'badge-green' : interestLvlText === 'not_interested' ? 'badge-red' : interestLvlText === 'callback' ? 'badge-blue' : 'badge-orange';
+                        const intSpan = interestLvlText ? `<span class="badge ${intBadge}" style="margin-left:4px">Interest: ${interestLvlText}</span>` : '';
+
+                        li.innerHTML = `
+                            <strong>${cl.timestamp.slice(0, 16).replace('T', ' ')}</strong>:
+                            Outcome <span class="badge ${badge}">${cl.outcome}</span>${intSpan} (${cl.duration_seconds}s)
+                            <div style="color:var(--text-secondary); margin-top: 0.15rem">${cl.reason || 'No comments'}</div>
+                            ${summaryText ? `<div style="color:var(--text-secondary); font-size:0.8rem; font-style:italic; margin-top:0.25rem; padding:0.25rem; background:rgba(255,255,255,0.02); border-radius:4px; border-left:2px solid var(--accent-blue)"><strong style="color:var(--text-primary)">AI Summary:</strong> ${summaryText}</div>` : ''}
+                        `;
+                        list.appendChild(li);
+                    });
+                }
+
+                // Call history fetch automatically fetches insights
+                const memoriesContainer = document.getElementById("crm-memories-container");
+                memoriesContainer.innerHTML = `<span style="color:var(--text-secondary)">No saved memory insights found for this lead.</span>`;
+
+                // If calls contain notes/insights or if we want to display logs
+                const noteStrings = calls.filter(cl => cl.notes).map(cl => {
+                    let nt = cl.notes;
+                    if (nt.includes("[AI Summary]:")) {
+                        const notesMatch = nt.match(/\[Notes\]:\s*([\s\S]+)/);
+                        nt = notesMatch ? notesMatch[1] : "";
+                    }
+                    return nt.trim();
+                }).filter(n => n.length > 0);
+                
+                if (noteStrings.length) {
+                    memoriesContainer.innerHTML = "";
+                    noteStrings.forEach(ns => {
+                        const div = document.createElement("div");
+                        div.style.padding = "0.4rem";
+                        div.style.background = "#131324";
+                        div.style.borderRadius = "4px";
+                        div.innerHTML = `<i data-lucide="check-circle" style="width:14px; display:inline; vertical-align:middle; margin-right:4px; color:var(--accent-green)"></i> ${ns}`;
+                        memoriesContainer.appendChild(div);
+                    });
+                    lucide.createIcons();
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function closeCRMDrilldown() {
+            document.getElementById("crm-drilldown").style.display = "none";
+        }
+
+        // ── SETTINGS ─────────────────────────────────────────────────────────────────
+
+        async function loadSettingsForm() {
+            try {
+                const res = await fetch("/api/settings");
+                const config = await res.json();
+
+                const fields = {
+                    "set-lk-url": "LIVEKIT_URL",
+                    "set-lk-key": "LIVEKIT_API_KEY",
+                    "set-lk-secret": "LIVEKIT_API_SECRET",
+                    "set-gemini-key": "GOOGLE_API_KEY",
+                    "set-gemini-model": "GEMINI_MODEL",
+                    "set-gemini-voice": "GEMINI_TTS_VOICE",
+                    "set-tw-sip": "TWILIO_SIP_DOMAIN",
+                    "set-tw-sid": "TWILIO_ACCOUNT_SID",
+                    "set-tw-token": "TWILIO_AUTH_TOKEN",
+                    "set-sip-username": "TWILIO_SIP_USERNAME",
+                    "set-sip-password": "TWILIO_SIP_PASSWORD",
+                    "set-tw-phone": "TWILIO_OUTBOUND_NUMBER",
+                    "set-tw-transfer": "DEFAULT_TRANSFER_NUMBER",
+                    "set-outbound-trunk": "OUTBOUND_TRUNK_ID",
+                    "set-cal-key": "CALCOM_API_KEY",
+                    "set-cal-event": "CALCOM_EVENT_TYPE_ID",
+                    "set-cal-tz": "CALCOM_TIMEZONE",
+                    "set-s3-key": "S3_ACCESS_KEY_ID",
+                    "set-s3-secret": "S3_SECRET_ACCESS_KEY",
+                    "set-s3-bucket": "S3_BUCKET",
+                    "set-s3-region": "S3_REGION",
+                    "set-s3-endpoint": "S3_ENDPOINT_URL",
+                    "set-ai-post-process": "ENABLE_AI_POST_PROCESSING"
+                };
+
+                for (let inputId in fields) {
+                    const settingKey = fields[inputId];
+                    const inputEl = document.getElementById(inputId);
+                    if (inputEl && config[settingKey]) {
+                        inputEl.value = config[settingKey].value || "";
+                        if (config[settingKey].configured && !config[settingKey].value) {
+                            inputEl.placeholder = "[Configured in environment]";
+                        }
+                    }
+                }
+
+                if (config["ENABLED_TOOLS"] && config["ENABLED_TOOLS"].value) {
+                    let tools = [];
+                    try {
+                        tools = JSON.parse(config["ENABLED_TOOLS"].value || "[]");
+                    } catch(e){}
+                    document.querySelectorAll("#global-tools-container input").forEach(cb => {
+                        cb.checked = tools.includes(cb.value);
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function togglePasswordVisibility(inputId, btnEl) {
+            const input = document.getElementById(inputId);
+            const icon = btnEl.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        async function saveSettingsGroup(keys, ...inputIds) {
+            const settings = {};
+            keys.forEach((key, idx) => {
+                const inputEl = document.getElementById(inputIds[idx]);
+                if (inputEl) {
+                    settings[key] = inputEl.value.trim();
+                }
+            });
+
+            try {
+                const res = await fetch("/api/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ settings })
+                });
+
+                if (res.ok) {
+                    alert("Settings group updated successfully!");
+                    loadLiveConfig();
+                    loadSettingsForm();
+                } else {
+                    const data = await res.json();
+                    throw new Error(data.detail || "Update failed");
+                }
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function saveToolToggles() {
+            const enabledTools = [];
+            document.querySelectorAll("#global-tools-container input:checked").forEach(cb => {
+                enabledTools.push(cb.value);
+            });
+            try {
+                const res = await fetch("/api/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        settings: {
+                            "ENABLED_TOOLS": JSON.stringify(enabledTools)
+                        }
+                    })
+                });
+
+                if (res.ok) {
+                    alert("Default tool toggles updated successfully!");
+                    loadLiveConfig();
+                    loadSettingsForm();
+                } else {
+                    const data = await res.json();
+                    throw new Error(data.detail || "Update failed");
+                }
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function setupSIPTrunk() {
+            const statusDiv = document.getElementById("trunk-creation-status");
+            statusDiv.textContent = "Connecting to LiveKit to create SIP Outbound Trunk...";
+
+            try {
+                const res = await fetch("/api/setup/trunk", { method: "POST" });
+                const data = await res.json();
+                if (res.ok) {
+                    statusDiv.innerHTML = `<span style="color:var(--accent-green)">Success! Created Trunk ID: <strong>${data.trunk_id}</strong>. OUTBOUND_TRUNK_ID has been auto-saved.</span>`;
+                    loadLiveConfig();
+                } else {
+                    throw new Error(data.detail || "Trunk initialization failed");
+                }
+            } catch (err) {
+                statusDiv.innerHTML = `<span style="color:var(--accent-red)">Error: ${err.message}</span>`;
+            }
+        }
+
+        // ── LOGS ─────────────────────────────────────────────────────────────────────
+
+        let logsRefreshPaused = false;
+
+        function toggleLogsRefresh() {
+            logsRefreshPaused = !logsRefreshPaused;
+            const btn = document.getElementById("btn-log-pause");
+            if (logsRefreshPaused) {
+                btn.innerHTML = `<i data-lucide="play" style="width:14px; height:14px;"></i> Resume`;
+                btn.classList.add("btn-success");
+                btn.classList.remove("btn-secondary");
+            } else {
+                btn.innerHTML = `<i data-lucide="pause" style="width:14px; height:14px;"></i> Pause`;
+                btn.classList.add("btn-secondary");
+                btn.classList.remove("btn-success");
+                loadLogs();
+            }
+            lucide.createIcons();
+        }
+
+        async function loadLogs() {
+            try {
+                const level = document.getElementById("log-filter-level").value;
+                const source = document.getElementById("log-filter-source").value.trim();
+                let url = "/api/logs?limit=150";
+                if (level) url += `&level=${encodeURIComponent(level)}`;
+                if (source) url += `&source=${encodeURIComponent(source)}`;
+
+                const res = await fetch(url);
+                const logs = await res.json();
+                const consoleDiv = document.getElementById("log-console");
+                consoleDiv.innerHTML = "";
+
+                if (logs.length === 0) {
+                    consoleDiv.innerHTML = `<div style="color:var(--text-secondary)">No log items reported in DB.</div>`;
+                    return;
+                }
+
+                logs.forEach(l => {
+                    const div = document.createElement("div");
+                    div.className = `log-entry log-level-${l.level || 'info'}`;
+                    const timeStr = l.timestamp ? l.timestamp.replace("T", " ").slice(11, 19) : "";
+
+                    div.innerHTML = `
+                        <span class="log-time">[${timeStr}]</span>
+                        <span class="log-source">[${l.source}]</span>
+                        <span class="log-msg">${l.message}</span>
+                        ${l.detail ? `<span class="log-detail">(${l.detail})</span>` : ''}
+                    `;
+                    consoleDiv.appendChild(div);
+                });
+            } catch (err) {
+                console.error("Log fetch failure", err);
+            }
+        }
+
+        async function clearLogs() {
+            if (!confirm("Clear all DB log events?")) return;
+            try {
+                await fetch("/api/logs", { method: "DELETE" });
+                loadLogs();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+    </script>
 </body>
 </html>
