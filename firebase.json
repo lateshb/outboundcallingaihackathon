@@ -1,0 +1,21 @@
+{
+  "hosting": {
+    "public": "ui",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "index.html",
+      "login.html"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "outbound-calling-backend",
+          "region": "us-central1"
+        }
+      }
+    ]
+  }
+}

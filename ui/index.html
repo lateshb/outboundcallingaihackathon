@@ -6,31 +6,32 @@
     <title>OutboundAI — Voice Dashboard</title>
     <meta name="description" content="AI Outbound Calling Platform Dashboard with Gemini Realtime and LiveKit SIP Integration">
     <!-- Fonts and Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        /* Modern Premium CSS System */
+        /* Google Material Design 3 (M3) Dark Theme Design System */
         :root {
-            --bg-base: #05050a;
-            --bg-surface: #0c0c16;
-            --bg-card: #121222;
-            --border-color: #202036;
-            --border-hover: #323254;
-            --text-primary: #f5f6fa;
-            --text-secondary: #9094a6;
-            --accent-green: #00ff87;
-            --accent-blue: #00ccff;
-            --accent-purple: #8a2be2;
-            --accent-red: #ff3b69;
-            --accent-orange: #ff9f00;
-            --gradient-accent: linear-gradient(135deg, #00ff87 0%, #00ccff 100%);
-            --gradient-header: linear-gradient(135deg, #0f0c1b 0%, #05050a 100%);
-            --glow-green: 0 0 20px rgba(0, 255, 135, 0.2);
-            --glow-blue: 0 0 20px rgba(0, 204, 255, 0.2);
-            --font-family: 'Outfit', sans-serif;
-            --transition-speed: 0.25s;
+            --bg-base: #111318;                  /* md-sys-color-background */
+            --bg-surface: #1a1c22;               /* md-sys-color-surface-container */
+            --bg-card: #24262d;                  /* md-sys-color-surface-container-high */
+            --border-color: #43474e;             /* md-sys-color-outline-variant */
+            --border-hover: #8c9099;             /* md-sys-color-outline */
+            --text-primary: #e2e2e9;             /* md-sys-color-on-background */
+            --text-secondary: #c4c6d0;           /* md-sys-color-on-surface-variant */
+            
+            --accent-blue: #a8c8ff;              /* md-sys-color-primary */
+            --accent-green: #a2f7b2;             /* Custom M3 green color */
+            --accent-purple: #dcb8ff;            /* Custom M3 purple color */
+            --accent-red: #ffb4ab;               /* md-sys-color-error */
+            --accent-orange: #ffb77b;            /* Custom M3 orange color */
+
+            --gradient-accent: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+            --gradient-header: linear-gradient(180deg, #161a22 0%, #111318 100%);
+            --glow-blue: 0 0 16px rgba(168, 200, 255, 0.15);
+            --font-family: 'Roboto', sans-serif;
+            --transition-speed: 0.2s;
         }
 
         * {
@@ -59,24 +60,24 @@
         }
         ::-webkit-scrollbar-thumb {
             background: var(--border-color);
-            border-radius: 4px;
+            border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb:hover {
             background: var(--border-hover);
         }
 
-        /* Top Header Navigation Layout */
+        /* M3 Header Navigation Layout */
         header {
-            background: var(--gradient-header);
+            background: var(--bg-base);
             border-bottom: 1px solid var(--border-color);
-            padding: 1.2rem 2rem;
+            padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: sticky;
             top: 0;
             z-index: 100;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
         }
 
         .logo-section {
@@ -86,24 +87,23 @@
         }
 
         .logo-section h1 {
-            font-size: 1.6rem;
-            font-weight: 800;
+            font-size: 1.5rem;
+            font-weight: 700;
             letter-spacing: -0.5px;
-            background: var(--gradient-accent);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: var(--accent-blue);
         }
 
+        /* M3 Chips and Badges */
         .status-badge {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            background: rgba(0, 255, 135, 0.1);
-            border: 1px solid rgba(0, 255, 135, 0.2);
+            padding: 0.4rem 0.9rem;
+            border-radius: 100px; /* Pill */
+            background: rgba(162, 247, 178, 0.08);
+            border: 1px solid rgba(162, 247, 178, 0.2);
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 500;
             color: var(--accent-green);
             text-transform: uppercase;
         }
@@ -113,16 +113,16 @@
             height: 8px;
             background-color: var(--accent-green);
             border-radius: 50%;
-            animation: pulse 1.8s infinite;
+            animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0% { transform: scale(0.9); opacity: 0.6; }
-            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px var(--accent-green); }
-            100% { transform: scale(0.9); opacity: 0.6; }
+            0% { transform: scale(0.95); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 8px var(--accent-green); }
+            100% { transform: scale(0.95); opacity: 0.6; }
         }
 
-        /* Nav Tabs Panel list styling */
+        /* M3 Navigation Tabs (Pill indicator style) */
         nav.nav-tabs {
             display: flex;
             gap: 0.5rem;
@@ -131,7 +131,7 @@
             background: var(--bg-surface);
             border-bottom: 1px solid var(--border-color);
             position: sticky;
-            top: 73px;
+            top: 65px;
             z-index: 99;
         }
 
@@ -142,26 +142,25 @@
             font-family: var(--font-family);
             font-size: 0.9rem;
             font-weight: 500;
-            padding: 0.6rem 1.1rem;
-            border-radius: 8px;
+            padding: 0.6rem 1.2rem;
+            border-radius: 100px; /* Pill-shaped active state in M3 */
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 0.5rem;
             white-space: nowrap;
-            transition: all var(--transition-speed) ease;
+            transition: background-color var(--transition-speed), color var(--transition-speed);
         }
 
         .tab-btn:hover {
             color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.04);
         }
 
         .tab-btn.active {
-            color: #ffffff;
-            background: rgba(0, 204, 255, 0.15);
-            border: 1px solid rgba(0, 204, 255, 0.3);
-            box-shadow: var(--glow-blue);
+            color: var(--bg-base);
+            background-color: var(--accent-blue);
+            font-weight: 600;
         }
 
         /* Content Container Layout */
@@ -175,7 +174,7 @@
 
         .tab-panel {
             display: none;
-            animation: fadeIn 0.3s ease-out forwards;
+            animation: fadeIn 0.2s cubic-bezier(0, 0, 0.2, 1) forwards;
         }
 
         .tab-panel.active {
@@ -183,20 +182,20 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Visual Card Grid & Components */
+        /* M3 Cards (Surface Container High) */
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 16px; /* M3 Medium shape */
             padding: 1.5rem;
             margin-bottom: 1.5rem;
             position: relative;
             overflow: hidden;
-            transition: border var(--transition-speed) ease;
+            transition: border-color var(--transition-speed);
         }
 
         .card:hover {
@@ -214,14 +213,14 @@
 
         .card-title {
             font-size: 1.15rem;
-            font-weight: 600;
+            font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.6rem;
             color: var(--text-primary);
         }
 
-        /* Grid Frameworks */
+        /* M3 Grid Frameworks */
         .grid-kpi {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -229,43 +228,45 @@
             margin-bottom: 2rem;
         }
 
+        /* KPI Card (M3 Elevated Card styling) */
         .kpi-card {
-            background: linear-gradient(145deg, #101020 0%, #151528 100%);
+            background-color: var(--bg-card);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 16px; /* M3 card style */
             padding: 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            transition: all var(--transition-speed) ease;
+            gap: 0.4rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            transition: transform var(--transition-speed), border-color var(--transition-speed), box-shadow var(--transition-speed);
         }
 
         .kpi-card:hover {
-            transform: translateY(-3px);
+            transform: translateY(-2px);
             border-color: var(--accent-blue);
             box-shadow: var(--glow-blue);
         }
 
         .kpi-title {
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 0.8rem;
+            font-weight: 500;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
         }
 
         .kpi-value {
             font-size: 2.2rem;
-            font-weight: 800;
+            font-weight: 700;
             color: #ffffff;
+            letter-spacing: -0.5px;
         }
 
         .kpi-icon {
             align-self: flex-end;
-            margin-top: -2.5rem;
+            margin-top: -2.2rem;
             color: var(--accent-blue);
-            opacity: 0.7;
+            opacity: 0.8;
         }
 
         /* Chart container */
@@ -280,126 +281,144 @@
             min-height: 320px;
         }
 
-        /* Badges & Indicators */
+        /* M3 styled Badges */
         .badge {
-            padding: 0.25rem 0.6rem;
-            border-radius: 6px;
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px; /* Pill */
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 500;
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
             text-transform: uppercase;
         }
 
-        .badge-green { background: rgba(0, 255, 135, 0.12); border: 1px solid rgba(0, 255, 135, 0.3); color: var(--accent-green); }
-        .badge-blue { background: rgba(0, 204, 255, 0.12); border: 1px solid rgba(0, 204, 255, 0.3); color: var(--accent-blue); }
-        .badge-red { background: rgba(255, 59, 105, 0.12); border: 1px solid rgba(255, 59, 105, 0.3); color: var(--accent-red); }
-        .badge-orange { background: rgba(255, 159, 0, 0.12); border: 1px solid rgba(255, 159, 0, 0.3); color: var(--accent-orange); }
+        .badge-green { background: rgba(162, 247, 178, 0.08); border: 1px solid rgba(162, 247, 178, 0.2); color: var(--accent-green); }
+        .badge-blue { background: rgba(168, 200, 255, 0.08); border: 1px solid rgba(168, 200, 255, 0.2); color: var(--accent-blue); }
+        .badge-red { background: rgba(255, 180, 171, 0.08); border: 1px solid rgba(255, 180, 171, 0.2); color: var(--accent-red); }
+        .badge-orange { background: rgba(255, 183, 123, 0.08); border: 1px solid rgba(255, 183, 123, 0.2); color: var(--accent-orange); }
 
-        /* Forms Layout & Inputs */
+        /* M3 Outlined Form Inputs styling */
         .form-group {
             margin-bottom: 1.2rem;
         }
 
         .form-group label {
             display: block;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 500;
             margin-bottom: 0.5rem;
             color: var(--text-secondary);
+            padding-left: 0.1rem;
         }
 
         input[type="text"], input[type="number"], input[type="email"], select, textarea {
             width: 100%;
-            background-color: #0c0c16;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            background-color: transparent;
+            border: 1.5px solid var(--border-color);
+            border-radius: 8px; /* M3 default text field border-radius */
             color: var(--text-primary);
-            padding: 0.75rem 1rem;
+            padding: 0.8rem 1rem;
             font-family: var(--font-family);
             font-size: 0.95rem;
-            transition: all var(--transition-speed) ease;
+            outline: none;
+            transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
         }
 
         input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus, select:focus, textarea:focus {
-            outline: none;
             border-color: var(--accent-blue);
-            box-shadow: 0 0 10px rgba(0, 204, 255, 0.15);
+            box-shadow: 0 0 0 1px var(--accent-blue);
         }
 
         .checkbox-container {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.6rem;
             cursor: pointer;
             user-select: none;
             margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
         }
 
         .checkbox-container input {
             cursor: pointer;
             accent-color: var(--accent-blue);
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
         }
 
-        /* Buttons styles */
+        /* M3 Buttons - Pill Shaped */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
             font-family: var(--font-family);
-            font-weight: 600;
+            font-weight: 500; /* M3 Medium weight */
             font-size: 0.9rem;
-            padding: 0.75rem 1.4rem;
-            border-radius: 8px;
+            padding: 0.7rem 1.4rem;
+            border-radius: 100px; /* Pill */
             cursor: pointer;
             border: none;
-            transition: all var(--transition-speed) ease;
+            transition: background-color var(--transition-speed), transform 0.1s, box-shadow var(--transition-speed);
             white-space: nowrap;
         }
 
         .btn-primary {
-            background: var(--gradient-accent);
-            color: #05050a;
-            box-shadow: 0 4px 15px rgba(0, 255, 135, 0.2);
+            background-color: var(--accent-blue);
+            color: var(--bg-base);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
 
         .btn-primary:hover {
-            opacity: 0.95;
-            box-shadow: 0 4px 25px rgba(0, 255, 135, 0.4);
-            transform: translateY(-1px);
+            background-color: #bbd7ff; /* Lighter tint of primary */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
 
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        /* M3 Outlined Button style */
         .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
+            background-color: transparent;
+            border: 1.5px solid var(--border-color);
+            color: var(--accent-blue);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background-color: rgba(168, 200, 255, 0.04);
             border-color: var(--border-hover);
         }
 
+        .btn-secondary:active {
+            background-color: rgba(168, 200, 255, 0.08);
+        }
+
+        /* M3 Danger Button */
         .btn-danger {
-            background: rgba(255, 59, 105, 0.15);
-            border: 1px solid rgba(255, 59, 105, 0.3);
+            background-color: transparent;
+            border: 1.5px solid var(--accent-red);
             color: var(--accent-red);
         }
 
         .btn-danger:hover {
-            background: rgba(255, 59, 105, 0.25);
-            box-shadow: 0 4px 15px rgba(255, 59, 105, 0.2);
+            background-color: rgba(255, 180, 171, 0.04);
+        }
+
+        .btn-danger:active {
+            background-color: rgba(255, 180, 171, 0.08);
         }
 
         .btn:disabled {
-            opacity: 0.5;
+            opacity: 0.38;
             cursor: not-allowed;
             transform: none !important;
             box-shadow: none !important;
+            background-color: rgba(255, 255, 255, 0.12) !important;
+            color: rgba(255, 255, 255, 0.38) !important;
+            border: none !important;
         }
 
         /* Flex & Alignment Utility classes */
@@ -421,7 +440,7 @@
             }
         }
 
-        /* Tables & Lists Layout */
+        /* M3 Clean Divider Tables */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -435,32 +454,33 @@
         }
 
         th {
-            background-color: var(--bg-surface);
+            background-color: transparent;
             color: var(--text-secondary);
-            font-weight: 600;
+            font-weight: 500;
             font-size: 0.85rem;
-            text-transform: uppercase;
-            padding: 0.9rem 1.2rem;
+            letter-spacing: 0.5px;
+            padding: 1rem 1.2rem;
             border-bottom: 1px solid var(--border-color);
         }
 
         td {
-            padding: 1rem 1.2rem;
+            padding: 1.2rem;
             border-bottom: 1px solid var(--border-color);
             font-size: 0.92rem;
+            color: var(--text-primary);
             vertical-align: middle;
         }
 
         tr:hover td {
-            background-color: rgba(255, 255, 255, 0.01);
+            background-color: rgba(255, 255, 255, 0.02);
         }
 
-        /* Progress Bar */
+        /* Progress Bar (M3 style) */
         .progress-bar-container {
-            background: #0d0d16;
+            background: var(--bg-surface);
             border: 1px solid var(--border-color);
-            border-radius: 10px;
-            height: 18px;
+            border-radius: 100px;
+            height: 10px;
             width: 100%;
             overflow: hidden;
             position: relative;
@@ -468,24 +488,17 @@
         }
 
         .progress-bar-fill {
-            background: var(--gradient-accent);
+            background-color: var(--accent-blue);
             height: 100%;
             width: 0%;
             transition: width 0.3s ease;
         }
 
         .progress-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #ffffff;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+            display: none; /* Hide old text overlay inside the bar for M3 */
         }
 
-        /* Live config chips list */
+        /* M3 Input Chips */
         .chips-container {
             display: flex;
             flex-wrap: wrap;
@@ -494,31 +507,32 @@
         }
 
         .chip {
-            background-color: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border-color);
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
+            background-color: var(--bg-surface);
+            border: 1.5px solid var(--border-color);
+            padding: 0.4rem 0.9rem;
+            border-radius: 8px; /* M3 Filter chip style */
             font-size: 0.8rem;
             color: var(--text-secondary);
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
+            font-weight: 500;
         }
 
         .chip span {
-            color: var(--text-primary);
+            color: var(--accent-blue);
             font-weight: 600;
         }
 
         /* CRM Details Drilldown overlay */
         .drilldown-container {
-            border: 1px solid var(--border-color);
+            border: 1.5px solid var(--border-color);
             background: var(--bg-surface);
-            border-radius: 10px;
-            padding: 1.2rem;
+            border-radius: 16px;
+            padding: 1.5rem;
             margin-top: 1rem;
             display: none;
-            animation: fadeIn 0.3s ease;
+            animation: fadeIn 0.2s cubic-bezier(0, 0, 0.2, 1);
         }
 
         .drilldown-header {
@@ -532,9 +546,9 @@
 
         /* Log console styling */
         .console {
-            background-color: #030307;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
+            background-color: #0c0d12;
+            border: 1.5px solid var(--border-color);
+            border-radius: 12px;
             padding: 1rem;
             font-family: monospace;
             font-size: 0.85rem;
@@ -550,8 +564,8 @@
         .log-entry {
             display: flex;
             gap: 0.8rem;
-            border-bottom: 1px solid #10101f;
-            padding-bottom: 0.25rem;
+            border-bottom: 1px solid #1a1c24;
+            padding-bottom: 0.3rem;
         }
 
         .log-time { color: #5f748d; font-size: 0.8rem; }
@@ -566,13 +580,14 @@
         .guide-step {
             margin-bottom: 1.5rem;
             padding-left: 1.5rem;
-            border-left: 2px solid var(--border-color);
+            border-left: 2.5px solid var(--border-color);
         }
 
         .guide-step h3 {
             font-size: 1rem;
             margin-bottom: 0.5rem;
             color: var(--accent-blue);
+            font-weight: 500;
         }
 
         .guide-step p, .guide-step li {
@@ -607,7 +622,7 @@
 
     <header>
         <div class="logo-section">
-            <i data-lucide="phone-call" style="color: var(--accent-green)"></i>
+            <span class="material-symbols-outlined" style="color: var(--accent-blue); font-size: 28px;">phone_in_talk</span>
             <h1>OutboundAI</h1>
             <div class="status-badge">
                 <span class="status-dot"></span>
@@ -615,27 +630,27 @@
             </div>
         </div>
         <div class="chips-container" style="margin-bottom: 0">
-            <div class="chip" id="chip-livekit-url"><i data-lucide="network" style="width:14px"></i>LK: <span class="val">Connecting...</span></div>
-            <div class="chip" id="chip-sip-trunk"><i data-lucide="phone-outgoing" style="width:14px"></i>Trunk: <span class="val">Loading...</span></div>
+            <div class="chip" id="chip-livekit-url"><span class="material-symbols-outlined" style="font-size: 16px;">dns</span>LK: <span class="val">Connecting...</span></div>
+            <div class="chip" id="chip-sip-trunk"><span class="material-symbols-outlined" style="font-size: 16px;">call_made</span>Trunk: <span class="val">Loading...</span></div>
         </div>
     </header>
 
     <!-- Top Navigation Tabs -->
     <nav class="nav-tabs">
-        <button class="tab-btn active" onclick="switchTab('stats')"><i data-lucide="bar-chart-3"></i>Stats</button>
-        <button class="tab-btn" onclick="switchTab('single-call')"><i data-lucide="phone"></i>Single Call</button>
-        <button class="tab-btn" onclick="switchTab('batch-call')"><i data-lucide="users"></i>Batch Call</button>
-        <button class="tab-btn" onclick="switchTab('campaigns')"><i data-lucide="rocket"></i>Campaigns</button>
-        <button class="tab-btn" onclick="switchTab('agents')"><i data-lucide="bot"></i>Agents</button>
-        <button class="tab-btn" onclick="switchTab('prompt')"><i data-lucide="file-edit"></i>AI Prompt</button>
-        <button class="tab-btn" onclick="switchTab('appointments')"><i data-lucide="calendar"></i>Appointments</button>
-        <button class="tab-btn" onclick="switchTab('call-logs')"><i data-lucide="clipboard-list"></i>Call Logs</button>
-        <button class="tab-btn" onclick="switchTab('crm')"><i data-lucide="user-check"></i>CRM</button>
-        <button class="tab-btn" onclick="switchTab('settings')"><i data-lucide="settings"></i>Settings</button>
-        <button class="tab-btn" onclick="switchTab('logs')"><i data-lucide="terminal"></i>Logs</button>
-        <button class="tab-btn" onclick="switchTab('setup')"><i data-lucide="help-circle"></i>Setup</button>
-        <button class="tab-btn" onclick="switchTab('users')"><i data-lucide="users"></i>Users</button>
-        <button class="tab-btn" onclick="window.location.href='/logout'" style="margin-left: auto; color: var(--accent-red); opacity: 0.85;"><i data-lucide="log-out"></i>Logout</button>
+        <button class="tab-btn active" onclick="switchTab('stats')"><span class="material-symbols-outlined" style="font-size: 20px;">monitoring</span>Stats</button>
+        <button class="tab-btn" onclick="switchTab('single-call')"><span class="material-symbols-outlined" style="font-size: 20px;">call</span>Single Call</button>
+        <button class="tab-btn" onclick="switchTab('batch-call')"><span class="material-symbols-outlined" style="font-size: 20px;">groups</span>Batch Call</button>
+        <button class="tab-btn" onclick="switchTab('campaigns')"><span class="material-symbols-outlined" style="font-size: 20px;">campaign</span>Campaigns</button>
+        <button class="tab-btn" onclick="switchTab('agents')"><span class="material-symbols-outlined" style="font-size: 20px;">smart_toy</span>Agents</button>
+        <button class="tab-btn" onclick="switchTab('prompt')"><span class="material-symbols-outlined" style="font-size: 20px;">edit_note</span>AI Prompt</button>
+        <button class="tab-btn" onclick="switchTab('appointments')"><span class="material-symbols-outlined" style="font-size: 20px;">calendar_month</span>Appointments</button>
+        <button class="tab-btn" onclick="switchTab('call-logs')"><span class="material-symbols-outlined" style="font-size: 20px;">receipt_long</span>Call Logs</button>
+        <button class="tab-btn" onclick="switchTab('crm')"><span class="material-symbols-outlined" style="font-size: 20px;">person_pin</span>CRM</button>
+        <button class="tab-btn" onclick="switchTab('settings')"><span class="material-symbols-outlined" style="font-size: 20px;">settings</span>Settings</button>
+        <button class="tab-btn" onclick="switchTab('logs')"><span class="material-symbols-outlined" style="font-size: 20px;">terminal</span>Logs</button>
+        <button class="tab-btn" onclick="switchTab('setup')"><span class="material-symbols-outlined" style="font-size: 20px;">help</span>Setup</button>
+        <button class="tab-btn" onclick="switchTab('users')"><span class="material-symbols-outlined" style="font-size: 20px;">group</span>Users</button>
+        <button class="tab-btn" onclick="window.location.href='/logout'" style="margin-left: auto; color: var(--accent-red); opacity: 0.85;"><span class="material-symbols-outlined" style="font-size: 20px;">logout</span>Logout</button>
     </nav>
 
     <main>

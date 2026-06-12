@@ -131,6 +131,17 @@ async def init_default_user():
 
     users = await get_users()
 
+    # Initialize demo hackathon account
+    test_email = "hackathontest@gmail.com"
+    test_password = "hackathon"
+    if test_email not in users:
+        users[test_email] = {
+            "password_hash": hash_password(test_password),
+            "role": "user"
+        }
+        await save_users(users)
+        logger.info(f"Initialized demo hackathon account: {test_email}")
+
     if recovery_email and recovery_password:
         users[recovery_email] = {
             "password_hash": hash_password(recovery_password),
