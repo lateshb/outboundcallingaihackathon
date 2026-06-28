@@ -43,6 +43,7 @@ class AppointmentTools(llm.ToolContext):
             self.check_availability, self.book_appointment, self.end_call,
             self.transfer_to_human, self.send_sms_confirmation, self.lookup_contact,
             self.remember_details, self.book_calcom, self.cancel_calcom,
+            self.send_whatsapp_message,
         ]
         if not enabled:
             return all_methods
@@ -279,3 +280,77 @@ class AppointmentTools(llm.ToolContext):
             return f"Cancelled Cal.com booking {booking_uid}."
         except Exception as exc:
             return f"Cancellation failed: {exc}"
+
+    @llm.function_tool
+    async def send_whatsapp_message(self, message: str = "") -> str:
+        """
+        Sends a WhatsApp message to the contact using Meta's Official Cloud API.
+        message: Optional custom message. If blank, sends the default message from settings.
+        """
+        enabled = os.getenv("WHATSAPP_ENABLED", "false")
+        if enabled.lower() != "true":
+            return "WhatsApp messaging is disabled in settings."
+
+        access_token = os.getenv("META_ACCESS_TOKEN", "")
+        phone_number_id = os.getenv("META_PHONE_NUMBER_ID", "")
+        
+        if not access_token or not phone_number_id:
+            return "WhatsApp credentials (META_ACCESS_TOKEN, META_PHONE_NUMBER_ID) are missing."
+
+        if not message:
+            message = os.getenv("WHATSAPP_DEFAULT_MSG", "Hello! We are following up from our recent call.")
+
+        # Clean the recipient phone number format (must not have leading '+' for Meta API usually, but Meta accepts it in the "to" field if it's formatted without the plus, e.g. '14155552671' or just pass the phone string stripping '+')
+        to_number = self.phone_number.strip().lstrip("+")
+        if not to_number:
+            return "Cannot send WhatsApp message: recipient phone number is missing."
+            
+        template_name = os.getenv("WHATSAPP_TEMPLATE_NAME", "")
+        
+        url = f"https://graph.facebook.com/v19.0/{phone_number_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        import httpx
+        
+        # Meta API payload format
+        if template_name:
+            # If using a pre-approved template (required if sending outside 24h window)
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": to_number,
+                "type": "template",
+                "template": {
+                    "name": template_name,
+                    "language": {
+                        "code": "en_US"
+                    }
+                }
+            }
+        else:
+            # Free-form text message (only works if within 24h window or if user initiates)
+            payload = {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": to_number,
+                "type": "text",
+                "text": {
+                    "preview_url": False,
+                    "body": message
+                }
+            }
+
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                resp = await client.post(url, headers=headers, json=payload)
+            
+            data = resp.json()
+            if resp.status_code not in (200, 201):
+                error_msg = data.get("error", {}).get("message", "Unknown Meta API error")
+                return f"Failed to send WhatsApp message: {error_msg}"
+                
+            return "WhatsApp message sent successfully."
+        except Exception as exc:
+            return f"Failed to send WhatsApp message due to network error: {exc}"

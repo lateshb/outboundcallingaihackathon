@@ -1393,6 +1393,60 @@
                     </form>
                 </div>
 
+                <!-- Group X: WhatsApp (Meta) Configuration -->
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="message-circle"></i>WhatsApp (Meta) Integration</h2></div>
+                    <form onsubmit="event.preventDefault(); saveSettingsGroup(['WHATSAPP_ENABLED', 'META_ACCESS_TOKEN', 'META_PHONE_NUMBER_ID', 'WHATSAPP_TEMPLATE_NAME', 'WHATSAPP_DEFAULT_MSG'], 'set-wa-enabled', 'set-wa-token', 'set-wa-phone-id', 'set-wa-template', 'set-wa-default-msg')">
+                        <div class="form-group">
+                            <label for="set-wa-enabled">Enable WhatsApp Messaging</label>
+                            <select id="set-wa-enabled">
+                                <option value="false">Disabled</option>
+                                <option value="true">Enabled</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="set-wa-token">Meta Permanent Access Token</label>
+                            <div style="position: relative;">
+                                <input type="password" id="set-wa-token" placeholder="EAA..." style="padding-right: 2.8rem;">
+                                <button type="button" style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer;" onclick="togglePasswordVisibility('set-wa-token', this)">
+                                    <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="set-wa-phone-id">Meta Phone Number ID</label>
+                            <input type="text" id="set-wa-phone-id" placeholder="e.g. 123456789012345">
+                        </div>
+                        <div class="grid-2col">
+                            <div class="form-group">
+                                <label for="set-wa-template">Approved Template Name (Optional)</label>
+                                <input type="text" id="set-wa-template" placeholder="e.g. hello_world">
+                            </div>
+                            <div class="form-group">
+                                <label for="set-wa-default-msg">Default Text Message</label>
+                                <input type="text" id="set-wa-default-msg" placeholder="Hello! Following up from our call...">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                            <i data-lucide="save"></i> Save WhatsApp Settings
+                        </button>
+                    </form>
+                    
+                    <hr style="border-color: var(--border-color); margin: 1.5rem 0;">
+                    <form onsubmit="event.preventDefault(); sendTestWhatsAppMessage()">
+                        <h3 style="font-size: 0.9rem; margin-bottom: 0.5rem; font-weight: 500;">Test WhatsApp Integration</h3>
+                        <div class="form-group">
+                            <label for="test-wa-phone">Recipient Phone Number (with Country Code, e.g. 14155552671)</label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" id="test-wa-phone" placeholder="e.g. 14155552671" style="flex: 1;">
+                                <button type="submit" class="btn btn-secondary">
+                                    <i data-lucide="send"></i> Send Test
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
                 <!-- Group 6: Global Tool Toggles -->
                 <div class="card">
                     <div class="card-header"><h2 class="card-title"><i data-lucide="wrench"></i>Global Default Tool Toggles</h2></div>
@@ -2630,6 +2684,32 @@
                 icon.setAttribute('data-lucide', 'eye');
             }
             lucide.createIcons();
+        }
+
+        async function sendTestWhatsAppMessage() {
+            const phone = document.getElementById('test-wa-phone').value.trim();
+            if (!phone) {
+                showToast("Please enter a phone number to test.", "error");
+                return;
+            }
+            try {
+                const res = await fetch("/api/whatsapp/send-test", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('adminToken') || ''}`
+                    },
+                    body: JSON.stringify({ to: phone })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast("Test WhatsApp message sent successfully!");
+                } else {
+                    showToast(data.detail || "Failed to send test message.", "error");
+                }
+            } catch (err) {
+                showToast("Error sending test message.", "error");
+            }
         }
 
         async function saveSettingsGroup(keys, ...inputIds) {

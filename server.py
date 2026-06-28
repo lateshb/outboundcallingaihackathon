@@ -8,6 +8,7 @@ import random
 import ssl
 import certifi
 import aiohttp
+import httpx
 from pathlib import Path
 from typing import Optional
 import hashlib
@@ -622,6 +623,59 @@ async def api_save_settings(req: SettingsRequest):
         os.environ[k] = str(v)
     return {"status": "saved", "count": len(filtered)}
 
+
+@app.post("/api/whatsapp/send-test")
+async def api_whatsapp_send_test(req: dict):
+    to_phone = req.get("to", "").strip().lstrip("+")
+    if not to_phone:
+        raise HTTPException(400, "Missing 'to' phone number")
+        
+    access_token = await eff("META_ACCESS_TOKEN")
+    phone_id = await eff("META_PHONE_NUMBER_ID")
+    
+    if not access_token or not phone_id:
+        raise HTTPException(400, "Meta WhatsApp credentials not fully configured.")
+        
+    template_name = await eff("WHATSAPP_TEMPLATE_NAME")
+    default_msg = await eff("WHATSAPP_DEFAULT_MSG") or "Test message from AI Agent"
+    
+    url = f"https://graph.facebook.com/v19.0/{phone_id}/messages"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    
+    if template_name:
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": to_phone,
+            "type": "template",
+            "template": {
+                "name": template_name,
+                "language": {"code": "en_US"}
+            }
+        }
+    else:
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to_phone,
+            "type": "text",
+            "text": {"preview_url": False, "body": default_msg}
+        }
+        
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(url, headers=headers, json=payload)
+        
+        data = resp.json()
+        if resp.status_code not in (200, 201):
+            msg = data.get("error", {}).get("message", "Unknown API error")
+            raise HTTPException(400, f"Meta API Error: {msg}")
+            
+        return {"status": "success", "message": "Test WhatsApp message sent!"}
+    except Exception as e:
+        raise HTTPException(500, f"Network error: {str(e)}")
 
 # -- SIP trunk setup --
 
