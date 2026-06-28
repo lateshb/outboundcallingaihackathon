@@ -32,6 +32,11 @@ DEFAULTS = {
     "TWILIO_SIP_USERNAME":     os.getenv("TWILIO_SIP_USERNAME", ""),
     "TWILIO_SIP_PASSWORD":     os.getenv("TWILIO_SIP_PASSWORD", ""),
     "ENABLE_AI_POST_PROCESSING": os.getenv("ENABLE_AI_POST_PROCESSING", "true"),
+    # WhatsApp messaging
+    "WHATSAPP_ENABLED":        os.getenv("WHATSAPP_ENABLED", "true"),
+    "WHATSAPP_FROM_NUMBER":    os.getenv("WHATSAPP_FROM_NUMBER", ""),
+    "WHATSAPP_TEMPLATE_SID":   os.getenv("WHATSAPP_TEMPLATE_SID", ""),
+    "WHATSAPP_DEFAULT_MSG":    os.getenv("WHATSAPP_DEFAULT_MSG", ""),
 }
 
 
@@ -75,11 +80,11 @@ def init_db() -> None:
         print("   Run supabase_schema.sql in your Supabase Dashboard -> SQL Editor")
 
 
-# ── Settings ─────────────────────────────────────────────────────────────────
+# ── Settings & In-Memory Fallback ─────────────────────────────────────────────
+
+_LOCAL_SETTINGS_CACHE = {}
 
 async def get_all_settings() -> dict:
-    db = await _adb()
-    result = await db.table("settings").select("key, value").execute()
     KNOWN_KEYS = [
         "LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET",
         "GOOGLE_API_KEY", "GEMINI_MODEL", "GEMINI_TTS_VOICE", "USE_GEMINI_REALTIME",
@@ -90,51 +95,73 @@ async def get_all_settings() -> dict:
         "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY", "S3_ENDPOINT_URL", "S3_REGION", "S3_BUCKET",
         "CALCOM_API_KEY", "CALCOM_EVENT_TYPE_ID", "CALCOM_TIMEZONE",
         "ENABLED_TOOLS", "ENABLE_AI_POST_PROCESSING",
+        # WhatsApp
+        "WHATSAPP_ENABLED", "WHATSAPP_FROM_NUMBER", "WHATSAPP_TEMPLATE_SID", "WHATSAPP_DEFAULT_MSG",
     ]
     out: dict = {}
     for k in KNOWN_KEYS:
-        env_val = _default(k)
+        env_val = _LOCAL_SETTINGS_CACHE.get(k) or _default(k)
         if k in SENSITIVE_KEYS:
             out[k] = {"value": "", "configured": bool(env_val)}
         else:
             out[k] = {"value": env_val, "configured": bool(env_val)}
-    for row in (result.data or []):
-        k, v = row["key"], row["value"]
-        if k == "TEST_KEY":
-            continue
-        if k in SENSITIVE_KEYS:
-            out[k] = {"value": "", "configured": bool(v)}
-        else:
-            out[k] = {"value": v, "configured": bool(v)}
+            
+    try:
+        db = await _adb()
+        result = await db.table("settings").select("key, value").execute()
+        for row in (result.data or []):
+            k, v = row["key"], row["value"]
+            if k == "TEST_KEY":
+                continue
+            if k in SENSITIVE_KEYS:
+                out[k] = {"value": "", "configured": bool(v)}
+            else:
+                out[k] = {"value": v, "configured": bool(v)}
+    except Exception as exc:
+        print(f"Warning: Could not fetch settings from Supabase, using local: {exc}")
+        
     return out
 
 
 async def save_settings(data: dict) -> None:
-    db = await _adb()
-    updated_at = datetime.now().isoformat()
-    rows = [
-        {"key": k, "value": str(v), "updated_at": updated_at}
-        for k, v in data.items()
-        if v is not None and v != ""
-    ]
-    if rows:
-        await db.table("settings").upsert(rows, on_conflict="key").execute()
+    _LOCAL_SETTINGS_CACHE.update(data)
+    try:
+        db = await _adb()
+        updated_at = datetime.now().isoformat()
+        rows = [
+            {"key": k, "value": str(v), "updated_at": updated_at}
+            for k, v in data.items()
+            if v is not None and v != ""
+        ]
+        if rows:
+            await db.table("settings").upsert(rows, on_conflict="key").execute()
+    except Exception as exc:
+        print(f"Warning: Could not save settings to Supabase: {exc}")
 
 
 async def get_setting(key: str, default: str = "") -> str:
-    db = await _adb()
-    result = await db.table("settings").select("value").eq("key", key).maybe_single().execute()
-    if result and result.data:
-        return result.data["value"]
+    if key in _LOCAL_SETTINGS_CACHE:
+        return _LOCAL_SETTINGS_CACHE[key]
+    try:
+        db = await _adb()
+        result = await db.table("settings").select("value").eq("key", key).maybe_single().execute()
+        if result and result.data:
+            return result.data["value"]
+    except Exception as exc:
+        print(f"Warning: get_setting({key}) failed from Supabase: {exc}")
     return _default(key) or default
 
 
 async def set_setting(key: str, value: str) -> None:
-    db = await _adb()
-    await db.table("settings").upsert(
-        {"key": key, "value": value, "updated_at": datetime.now().isoformat()},
-        on_conflict="key",
-    ).execute()
+    _LOCAL_SETTINGS_CACHE[key] = value
+    try:
+        db = await _adb()
+        await db.table("settings").upsert(
+            {"key": key, "value": value, "updated_at": datetime.now().isoformat()},
+            on_conflict="key",
+        ).execute()
+    except Exception as exc:
+        print(f"Warning: set_setting({key}) failed on Supabase: {exc}")
 
 
 async def get_enabled_tools() -> list:

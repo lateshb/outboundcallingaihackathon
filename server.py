@@ -634,6 +634,55 @@ async def api_save_settings(req: SettingsRequest):
     return {"status": "saved", "count": len(filtered)}
 
 
+# -- WhatsApp --
+
+class WhatsAppTestRequest(BaseModel):
+    to: str
+
+@app.post("/api/whatsapp/send-test")
+async def api_whatsapp_send_test(req: WhatsAppTestRequest):
+    """Send a test WhatsApp message to verify credentials."""
+    sid      = await eff("TWILIO_ACCOUNT_SID")
+    token    = await eff("TWILIO_AUTH_TOKEN")
+    from_num = await eff("WHATSAPP_FROM_NUMBER")
+    enabled  = (await eff("WHATSAPP_ENABLED") or "true").lower()
+
+    if enabled == "false":
+        raise HTTPException(400, "WhatsApp messaging is disabled in settings.")
+    if not (sid and token and from_num):
+        raise HTTPException(400, "WhatsApp not fully configured. Provide TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and WHATSAPP_FROM_NUMBER.")
+
+    def _wa(n: str) -> str:
+        n = n.strip()
+        return n if n.startswith("whatsapp:") else f"whatsapp:{n}"
+
+    try:
+        from twilio.rest import Client
+        import asyncio as _asyncio
+        client = Client(sid, token)
+        template_sid = await eff("WHATSAPP_TEMPLATE_SID")
+        loop = _asyncio.get_event_loop()
+        if template_sid:
+            await loop.run_in_executor(
+                None,
+                lambda: client.messages.create(
+                    from_=_wa(from_num), to=_wa(req.to), content_sid=template_sid
+                ),
+            )
+        else:
+            default_msg = await eff("WHATSAPP_DEFAULT_MSG")
+            body = default_msg or "This is a test message from your OutboundAI platform. WhatsApp integration is working correctly!"
+            await loop.run_in_executor(
+                None,
+                lambda: client.messages.create(body=body, from_=_wa(from_num), to=_wa(req.to)),
+            )
+        return {"status": "sent", "message": f"Test WhatsApp message sent to {req.to}"}
+    except Exception as exc:
+        logger.error("WhatsApp test send failed: %s", exc)
+        raise HTTPException(500, f"WhatsApp send failed: {exc}")
+
+
+
 # -- SIP trunk setup --
 
 @app.post("/api/setup/trunk")

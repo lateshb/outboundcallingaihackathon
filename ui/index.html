@@ -1408,7 +1408,48 @@
                     </form>
                 </div>
 
-                <!-- Group 6: Global Tool Toggles -->
+                <!-- Group 6: WhatsApp Messaging -->
+                <div class="card" style="border-top: 2px solid #25d366;">
+                    <div class="card-header"><h2 class="card-title"><i data-lucide="message-circle"></i>WhatsApp Messaging</h2></div>
+                    <form onsubmit="event.preventDefault(); saveSettingsGroup(['WHATSAPP_ENABLED', 'WHATSAPP_FROM_NUMBER', 'WHATSAPP_TEMPLATE_SID', 'WHATSAPP_DEFAULT_MSG'], 'set-wa-enabled', 'set-wa-from', 'set-wa-template', 'set-wa-default-msg')">
+                        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.8rem; line-height:1.5">
+                            When the AI offers to send details over WhatsApp, it uses the Twilio WhatsApp Business API. Requires an approved Twilio WhatsApp sender.
+                        </p>
+                        <div class="form-group">
+                            <label for="set-wa-enabled">Enable WhatsApp Messaging</label>
+                            <select id="set-wa-enabled">
+                                <option value="true">Enabled &mdash; Agent can send WhatsApp messages</option>
+                                <option value="false">Disabled &mdash; WhatsApp tool is inactive</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="set-wa-from">WhatsApp Sender Number</label>
+                            <input type="text" id="set-wa-from" placeholder="+1XXXXXXXXXX (approved Twilio WhatsApp number)">
+                            <p style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.3rem">Must be approved in your <a href="https://console.twilio.com/us1/develop/sms/senders/whatsapp-senders" target="_blank" style="color:var(--accent-blue)">Twilio WhatsApp Senders</a> list.</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="set-wa-template">Content Template SID <span style="font-weight:400; color:var(--text-secondary)">(optional)</span></label>
+                            <input type="text" id="set-wa-template" placeholder="HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                            <p style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.3rem">Pre-approved template for first-contact messages. Leave blank to send the message verbatim.</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="set-wa-default-msg">Default WhatsApp Message Template</label>
+                            <textarea id="set-wa-default-msg" rows="4" placeholder="Hi {lead_name}, thanks for your time! Here are the details we discussed: ..."></textarea>
+                            <p style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.3rem">The AI uses conversation context to personalise this. Supports <code>{lead_name}</code> and <code>{business_name}</code>.</p>
+                        </div>
+                        <div style="display:flex; gap:0.5rem; margin-top:0.5rem">
+                            <button type="submit" class="btn btn-primary" style="flex:1">
+                                <i data-lucide="save"></i> Save WhatsApp Settings
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="testWhatsAppMessage()">
+                                <i data-lucide="send"></i> Test Send
+                            </button>
+                        </div>
+                        <div id="wa-test-status" style="margin-top:0.6rem; font-size:0.85rem;"></div>
+                    </form>
+                </div>
+
+                <!-- Group 7: Global Tool Toggles -->
                 <div class="card">
                     <div class="card-header"><h2 class="card-title"><i data-lucide="wrench"></i>Global Default Tool Toggles</h2></div>
                     <form onsubmit="event.preventDefault(); saveToolToggles()">
@@ -1421,6 +1462,7 @@
                             <label class="checkbox-container"><input type="checkbox" value="end_call" checked><span>end_call</span></label>
                             <label class="checkbox-container"><input type="checkbox" value="transfer_to_human" checked><span>transfer_to_human</span></label>
                             <label class="checkbox-container"><input type="checkbox" value="send_sms_confirmation" checked><span>send_sms</span></label>
+                            <label class="checkbox-container"><input type="checkbox" value="send_whatsapp_message" checked><span>send_whatsapp &#9679;</span></label>
                             <label class="checkbox-container"><input type="checkbox" value="lookup_contact" checked><span>lookup_contact</span></label>
                             <label class="checkbox-container"><input type="checkbox" value="remember_details" checked><span>remember_details</span></label>
                             <label class="checkbox-container"><input type="checkbox" value="book_calcom"><span>book_calcom</span></label>
@@ -2606,7 +2648,11 @@
                     "set-ai-post-process": "ENABLE_AI_POST_PROCESSING",
                     "set-emergency-stop": "EMERGENCY_STOP",
                     "set-max-minute": "MAX_CALLS_PER_MINUTE",
-                    "set-max-daily": "MAX_DAILY_CALLS"
+                    "set-max-daily": "MAX_DAILY_CALLS",
+                    "set-wa-enabled": "WHATSAPP_ENABLED",
+                    "set-wa-from": "WHATSAPP_FROM_NUMBER",
+                    "set-wa-template": "WHATSAPP_TEMPLATE_SID",
+                    "set-wa-default-msg": "WHATSAPP_DEFAULT_MSG"
                 };
 
                 for (let inputId in fields) {
@@ -2645,6 +2691,32 @@
                 icon.setAttribute('data-lucide', 'eye');
             }
             lucide.createIcons();
+        }
+
+        async function testWhatsAppMessage() {
+            const statusEl = document.getElementById("wa-test-status");
+            const toPhone = prompt("Enter the WhatsApp phone number to test (with country code, e.g. +911234567890):");
+            if (!toPhone) return;
+            statusEl.style.color = "var(--accent-blue)";
+            statusEl.textContent = "Sending test message...";
+            try {
+                const res = await fetch("/api/whatsapp/send-test", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ to: toPhone })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    statusEl.style.color = "var(--accent-green)";
+                    statusEl.textContent = "\u2713 " + (data.message || "Test message sent successfully!");
+                } else {
+                    statusEl.style.color = "var(--accent-red)";
+                    statusEl.textContent = "\u2717 Error: " + (data.detail || "Failed to send test message.");
+                }
+            } catch (err) {
+                statusEl.style.color = "var(--accent-red)";
+                statusEl.textContent = "\u2717 Network error: " + err.message;
+            }
         }
 
         async function saveSettingsGroup(keys, ...inputIds) {

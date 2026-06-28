@@ -41,8 +41,8 @@ class AppointmentTools(llm.ToolContext):
         """Return tool methods filtered by the enabled list. Empty list = all enabled."""
         all_methods = [
             self.check_availability, self.book_appointment, self.end_call,
-            self.transfer_to_human, self.send_sms_confirmation, self.lookup_contact,
-            self.remember_details, self.book_calcom, self.cancel_calcom,
+            self.transfer_to_human, self.send_sms_confirmation, self.send_whatsapp_message,
+            self.lookup_contact, self.remember_details, self.book_calcom, self.cancel_calcom,
         ]
         if not enabled:
             return all_methods
@@ -154,6 +154,61 @@ class AppointmentTools(llm.ToolContext):
             return f"SMS sent to {phone}."
         except Exception as exc:
             return "SMS delivery failed, but booking is confirmed."
+
+    @llm.function_tool
+    async def send_whatsapp_message(self, phone: str, message: str) -> str:
+        """
+        Send a WhatsApp message to the lead during or after a call.
+        Use this when the lead says they want details sent over WhatsApp,
+        or when the script instructs you to send a WhatsApp follow-up.
+        phone: lead's phone number with country code (e.g. +911234567890)
+        message: the message body to send
+        """
+        sid   = os.getenv("TWILIO_ACCOUNT_SID", "")
+        token = os.getenv("TWILIO_AUTH_TOKEN", "")
+        # Prefer a dedicated WhatsApp sender; fall back to the general outbound number
+        from_num = os.getenv("WHATSAPP_FROM_NUMBER", "") or os.getenv("TWILIO_FROM_NUMBER", "")
+        enabled  = os.getenv("WHATSAPP_ENABLED", "true").lower()
+        if enabled == "false":
+            return "WhatsApp messaging is disabled — update the setting in the dashboard to enable it."
+        if not (sid and token and from_num):
+            return "WhatsApp not configured: add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and WHATSAPP_FROM_NUMBER in Settings."
+        # Normalise to whatsapp: URIs
+        def _wa(num: str) -> str:
+            num = num.strip()
+            if not num.startswith("whatsapp:"):
+                return f"whatsapp:{num}"
+            return num
+        try:
+            from twilio.rest import Client
+            loop = asyncio.get_event_loop()
+            client = Client(sid, token)
+            # Resolve template vs free-form message
+            template_sid = os.getenv("WHATSAPP_TEMPLATE_SID", "")
+            if template_sid:
+                # Use a pre-approved WhatsApp template (needed for the first 24 h outside a session)
+                await loop.run_in_executor(
+                    None,
+                    lambda: client.messages.create(
+                        from_=_wa(from_num),
+                        to=_wa(phone),
+                        content_sid=template_sid,
+                    ),
+                )
+            else:
+                await loop.run_in_executor(
+                    None,
+                    lambda: client.messages.create(
+                        body=message,
+                        from_=_wa(from_num),
+                        to=_wa(phone),
+                    ),
+                )
+            await _log(f"WhatsApp sent to {phone}", message, "info")
+            return f"WhatsApp message sent to {phone}. The lead will receive the details on WhatsApp shortly."
+        except Exception as exc:
+            await _log("WhatsApp send failed", str(exc), "error")
+            return "WhatsApp delivery failed — please let the lead know we'll follow up another way."
 
     @llm.function_tool
     async def lookup_contact(self, phone: str) -> str:
